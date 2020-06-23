@@ -1,0 +1,29 @@
+<head>
+    {% if site.tags != "" %}
+        {% include tags.html %}
+    {% endif %}
+
+    <!-- specify character encoding for the html document -->
+    <meta charset="utf-8">
+    <!-- provides an HTTP header for the value of the content attribute -->
+    <!-- use of http-equiv is obsolete for html5 -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- set viewpoint to make the site looks fit on all device platforms -->
+    <meta name="viewpoint" content="width=device-width, initial-scale=1">
+
+    <!-- defines a title for the html document -->
+    <title>
+        <!-- use page title if defined, else use site title -->
+        {% if page.title %}
+        {{ page.title | escape }}
+        {% else %}
+        {{ site.title | escape }}
+        {% endif %}
+    </title>
+
+    <!-- for latex -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript" >
+    </script>
+
+
+</head>

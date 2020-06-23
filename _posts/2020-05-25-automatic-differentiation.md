@@ -1,4 +1,10 @@
-# Automatic Differentiation
+---
+layout: post
+comments: true
+title: zoo of deep learning modules
+date: 2020-05-25
+tags: foundation
+---
 
 > Automatic Differentiation (auto-diff in short) is a method used to compute gradients in a network for backpropagation. This post introduces the basic concepts in compute graphs, auto-diff, modular backprop, and illustrates them with several examples.
 

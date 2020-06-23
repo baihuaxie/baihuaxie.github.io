@@ -1,7 +1,7 @@
 title: Baihua's Blog
 name: "Baihua's Machine Learning Blog"
 author: Baihua Xie
-baseurl: "/baihua-blog"
+baseurl: "/"
 description: Blogs on my learning
 profile_url: "http://baihuaxie.github.io"
 

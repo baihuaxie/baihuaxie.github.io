@@ -50,6 +50,39 @@ $on-laptop:        800px !default;
   font-size: $base-font-size * $ratio;
 }
 
+// Customize Bulma variables
+$navbar-height:    5rem;
+$navbar-item-img-max-height: 3rem;
+
+$title-family: True;
+
+$footer-background-color: is-white;
+
+#jekyll-logo {
+    margin-right: 4px;
+    position: relative;
+    top: 10px
+}
+
+#bulma-logo {
+    margin-right: 4px;
+    position: relative;
+    top: 7px
+}
+
+#github-logo {
+    margin-right: 4px;
+    position: relative;
+    top: 4px
+}
+
+#linkedin-logo {
+    margin-right: 4px;
+    position: relative;
+    top: 5px
+}
+
+
 // Import partials.
 @import
   "bulma-0.9.0/bulma"

@@ -20,6 +20,7 @@
 
 title: Baihua's Blog
 name: Baihua's Tech Blog
+author: Baihua Xie
 description: >- # this means to ignore newlines until "baseurl:"
   Document my deep learning notes.
 baseurl: "" # the subpath of your site, e.g. /blog
@@ -32,6 +33,11 @@ markdown: kramdown
 highlighter: rouge
 plugins:
   - jekyll-feed
+
+kramdown:
+  input: GFM
+  auto_ids: true
+  syntax_highligher: rouge
 
 
 # Exclude from processing.

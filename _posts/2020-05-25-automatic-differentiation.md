@@ -39,10 +39,10 @@ Below are some widely used modules:
 
 Notation: 
 
-* $x$: scalar
-* $\vec{x}$: vectors
-* $x_i$: scalar element of vector $\vec{x}$
-* $X$: matrix
+* $$x$$: scalar
+* $$\vec{x}$$: vectors
+* $$x_i$$: scalar element of vector $$\vec{x}$$
+* $$X$$: matrix
 * vectors adopt column format
 * partial derivatives adopt [numerator layout](https://en.wikipedia.org/wiki/Matrix_calculus#Layout_conventions)
 

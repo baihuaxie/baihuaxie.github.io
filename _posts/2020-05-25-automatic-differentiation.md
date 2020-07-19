@@ -262,7 +262,7 @@ $$
 
 
 
-## References
+### References
 
 1. Simon Osindero, "Lecture-03: Neural Network Foundations" , the DeepMindxUCL lectures
 2. Ian Goodfellow, Yoshua Bengio, Aaron Courvill, "Deep Learning", Chap. 10 (RNN, LSTM, GRU)

@@ -1,7 +1,7 @@
 ---
 layout: post
-comment: true
-title: EfficientNet: One Net To Rule Them All?
+comments: true
+title: EfficientNet&#58 One Net To Rule Them All?
 date: 2020-07-18
 author: Baihua Xie
 tags: cnn cv nas
@@ -17,6 +17,12 @@ It has long been established in the deep learning community that scaling up a mo
 To scale a model to fit a given resource budget, a baseline architecture needs to be designed first. The paper opted for a NAS-based approach that is built upon a previous work by the same authors on neural architecture search for mobile platforms, termed MnasNet^5^, where a multi-objective reward that incorporates both accuracy and inference latency on target platform is calculated to train the controller network. 
 
 As with any NAS method, composition of the search space is critical to the performance of algorithm. In the MnasNet paper, a search space primarily comprised of mobile-inverted-bottleneck layers^6^ is used for their superior performance of in building models for mobile platforms. Another factor is the search space size, as NAS methods are notoriously costly in training^7^. Instead of constructing a child network layer by layer, MnasNet first defines a skeleton network architecture comprising of a sequence of blocks. With this skeleton network, each block is associated with its own block-level search space, and only one search is required to produce a block of several layers (number of layers is also a searchable parameter in the search space, along with the type of the layer). By breaking the search procedure from searching on per-layer level to searching on per-block level, this alteration effectively reduces the overall search space size to produce a final baseline network of same depths by a factor of $$e^\frac{1}{N}$$, where N is the average number of layers per block in the network. 
+
+![MnasNet search method concepts](../assets/images/02_efficientnet_fig1_mnasnet_concept.PNG)
+
+​																										(image source: [MnasNet paper](https://arxiv.org/abs/1807.11626))
+
+
 
 #### Reference
 

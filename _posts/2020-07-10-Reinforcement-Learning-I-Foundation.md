@@ -1,7 +1,7 @@
 ---
 layout: post
 comments: true
-title: Reinforcement Learning I: Foundation
+title: Reinforcement Learning I&#58 Foundation
 date: 2020-07-10
 author: Baihua Xie
 tags: foundation reinforcement-learning

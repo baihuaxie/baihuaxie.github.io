@@ -24,7 +24,7 @@ layout: default
         </div>
         <!-- mins read -->
         <div class="level-item">
-          <span>&middot;&ensp; {{ page.mins | append: '-' | append: 'min read' }}</span>
+          <span>&middot;&ensp; {{ page.mins | append: ' read' }}</span>
         </div>
       </div>
 
@@ -39,7 +39,7 @@ layout: default
   </section>
 
   <section class='section mt-1 pt-1'>
-    <div class="content">
+    <div class="content" style="text-align:justify">
       {{ content }}
     </div>
   </section>

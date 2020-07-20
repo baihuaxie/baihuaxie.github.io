@@ -5,7 +5,7 @@ title: Zoo of Deep Learning Modules
 date: 2020-05-25
 author: Baihua Xie
 tags: foundation
-mins: 20
+mins: 20-min
 ---
 
 > Deep Neural Networks are built with modules. This post introduces some of the most widely used differentiable modules in mainstream deep learning models, from the basic parameter-free operations such as pooling, activations, to linear, attention and the more complex reccurent modules. For each module introduced, either a set of mathematical formulations or a PyTorch/Numpy implementation of the module's forward, backward, and when applicable, parameter gradient methods is provided. Regular updates will be made to include some of the more recent progresses in literature pertaining to the design, analysis or integration of novel modules.

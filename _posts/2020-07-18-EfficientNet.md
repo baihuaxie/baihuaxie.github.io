@@ -17,7 +17,7 @@ To produce models that retain performance competitiveness under a wide range of 
 As with any NAS method, composition of the search space is critical to the performance of algorithm. In the MnasNet paper, a search space primarily comprised of mobile-inverted-bottleneck layers<sup>3</sup> is used due to their superior performance in building models for mobile platforms. Another factor is the search space size, as NAS methods are notoriously costly to train<sup>4</sup>. MnasNet first defines a skeleton network architecture comprising of a sequence of blocks. With this skeleton network, each block is associated with its own block-level search space, and only one search is required to produce a block of several layers (number of layers is also a searchable parameter in the search space, along with the type of the layer). By factorizing the search procedure from searching on per-layer level to searching on per-block level, this alteration effectively reduces the overall search space size to produce a final baseline network of the same depth by a factor of $$e^\frac{1}{N}$$, where N is the average number of layers per block in the network. 
 
 {: class="columns is-full is-centered"}
-![MnasNet search method concepts](/assets/images/02_efficientnet_fig1_mnasnet_concept.png)
+![MnasNet search method concepts](/assets/images/02_efficientnet_fig1_mnasnet_search_concept.png)
 
 {: style="text-align: center;"}
 *image source: [MnasNet paper](https://arxiv.org/abs/1807.11626)*

@@ -10,7 +10,11 @@ mins: 20-min
 
 > Deep Neural Networks are built with modules. This post introduces some of the most widely used differentiable modules in mainstream deep learning models, from the basic parameter-free operations such as pooling, activations, to linear, attention and the more complex reccurent modules. For each module introduced, either a set of mathematical formulations or a PyTorch/Numpy implementation of the module's forward, backward, and when applicable, parameter gradient methods is provided. Regular updates will be made to include some of the more recent progresses in literature pertaining to the design, analysis or integration of novel modules.
 
+Deep learning is a heavily loaded term. Sometimes it is used synonymously with terms such as deep neural networks, supervised learning, representation learning, etc. But deep learning actually refers to a wider range of methods. Yan LeCun gave a generalized definition of deep learning at a keynote event in AAAI 2020 as follows:
 
+> "Deep learning is building a system by assembling parameterized __modules__ into a (possibly dynamic) __computation graph__, and __training__ it to perform a task by __optimizing__ the parameters using a __gradient-based method__."
+
+This blog post will discuss the modules, which are essentially the building blocks of modern deep learning systems.
 
 A neural network can be viewed as a __compute graph__, i.e., a directed acyclic graph with nodes and edges such that:
 

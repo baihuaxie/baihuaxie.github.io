@@ -117,12 +117,16 @@ Although the network designs have progressed significantly, the most basic convo
 * groups: grouped convolution could reduce computational complexity; an extreme situation is groups=channels, in which case it became depthwise
 
 In modern network design, to alleviate the burden of dimension mismatch between skip connections, it is desirable to customize the convolutional modules such that they preserve feature map dimensions exactly when stride is 1. For an input feature map of size $$[H_{in}, W_{in}]$$, a conv-2d filter would produce an output feature map of the size:
+
+
 $$
 \begin{split}
 H_{out} &= \frac{H_{in}+2*padding[0]-dilation[0]*(kernel\_size[0]-1)-1}{stride[0]}+1\\
 W_{out} &= \frac{W_{in}+2*padding[1]-dilation[1]*(kernel\_size[1]-1)-1}{stride[1]}+1
 \end{split}
 $$
+
+
 For instance, if the kernel size is 5, then setting the padding=dilation=2 would ensure the preservation of dimensions. Such a configuration would also exactly halve the feature maps if stride=2, another desirable property, as setting stride=2 is the most common downsampling technique employed in modern networks.
 
 Another interesting anecdote about convolutional filters is that they are actually not convolutional at all. The proper name for the actual operation that they do perform should in fact be [auto-correlation](https://en.wikipedia.org/wiki/Autocorrelation#:~:text=Autocorrelation%2C%20also%20known%20as%20serial,the%20time%20lag%20between%20them.), borrowed from the field of statistics. The difference is very subtle: auto-correlation became the true convolution if the input feature maps are transposed first, which of course is not necessary. Nonetheless, the name "convolution", just as its status as the corner-stone of modern computer vision networks, have stood the test of time.
@@ -357,4 +361,4 @@ $$
 27. Jimmy Lei Ba et al, "[Layer Normalization](https://arxiv.org/abs/1607.06450)", Arxiv 2016
 28. Dmitry Ulyanov et al, "[Instance Normalization: The Missing Ingredient for Fast Stylization](https://arxiv.org/abs/1607.08022)", Arxiv 2017
 29. Yuxin Wu & Kaiming He, "[Group Normalization](https://arxiv.org/abs/1803.08494)", EECV 2018
-30. Tim Salimans et al, "[Weight Normalization](https://papers.nips.cc/paper/6114-weight-normalization-a-simple-reparameterization-to-accelerate-training-of-deep-neural-networks.pdf)", NeurIPS 2016
+30. Tim Salimans et al, "[Weight Normalization: A Simple Reparameterization to Accelerate Training of Deep Neural Networks](https://papers.nips.cc/paper/6114-weight-normalization-a-simple-reparameterization-to-accelerate-training-of-deep-neural-networks.pdf)", NeurIPS 2016

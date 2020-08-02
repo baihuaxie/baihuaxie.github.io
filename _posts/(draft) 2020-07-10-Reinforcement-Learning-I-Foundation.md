@@ -121,7 +121,7 @@ mins: long
 
 
 
-### Classic Approaches to RL
+### Value-based Approaches to RL
 
 
 
@@ -157,11 +157,31 @@ mins: long
 
 
 
+##### Convergence of value-based methods: Contraction Mapping
+
+
+
 ##### Comparison of DP, MC, TD Methods
 
 
 
-### Model-free Approaches
+##### Deep Q-learning
+
+
+
+###### Case Study 1: DQN
+
+
+
+###### Double DQN
+
+
+
+###### Rainbow DQN
+
+
+
+### Policy-based Approaches
 
 
 
@@ -190,22 +210,6 @@ mins: long
 
 
 ###### PPO
-
-
-
-##### Deep Q-learning
-
-
-
-###### Case Study 1: DQN
-
-
-
-###### Double DQN
-
-
-
-###### Rainbow DQN
 
 
 

@@ -16,7 +16,7 @@ The notations are summarized in the following table:
 | ------------------------------------------------------- | :----------------------------------------------------------- |
 | $$s_t, a_t, r_t$$                                       | the **state** $$s$$, **action** $$a$$ and **reward** $$r$$ at current timestep $$t$$ |
 | $$\gamma$$                                              | **discount factor**                                          |
-| $$\pi_\theta(a_t|s_t)$$                                 | the policy network parameterized by $$\theta$$ that approximates the stochastic **policy function** |
+| $$\pi_\theta(a_t\|s_t)$$                                 | the policy network parameterized by $$\theta$$ that approximates the stochastic **policy function** |
 | $$\hat{V}_\phi(s_t)$$                                   | the value network parameterized by $$\phi$$ that approximates the **state-value function** |
 | $$\hat{Q}(s_t,a_t)$$                                    | the estimated **action-value function**                      |
 | $$\hat{A}(s_t,a_t)$$                                    | the estimated **advantage function**                         |
@@ -24,62 +24,76 @@ The notations are summarized in the following table:
 | $$\mathbb{E}_{s,a\sim\pi}$$                             | the expectation over the possible trajectories of state-action pairs following policy $$\pi$$ |
 | $$\hat{\mathbb{E}}_t=\frac{1}{T}\sum\limits_{t=1}^{T}$$ | approximate the true expectation by the average over a sample trajectory of length $$T$$ |
 
-The basic RL problem setting is assumed in the discussion. The agent has access to a Markov Decision Process (MDP). At each iteration of the training process, the agent interacts with the environment and samples a trajectory of $$\{s_t, a_t, r_t\}$$ following current policy $$\pi_{\theta_{old}}$$ for $$T$$ timesteps. The samples are subsequently used to form estimates of the various quantities needed to optimize the parameters, such as advantage function and policy gradient. To encourage exploration, one could use asynchronous setting^1^ or off-policy setting^2^ through importance sampling (for the latter, typically with experience replay^3^ to improve stability), though neither choice would alter the core algorithms significantly. Hence for the simplicity in discussion, this post would focus only on the on-policy version of the algorithms.
+The basic RL problem setting is assumed in the discussion. The agent has access to a Markov Decision Process (MDP). At each iteration of the training process, the agent interacts with the environment and samples a trajectory of $$\{s_t, a_t, r_t\}$$ following current policy $$\pi_{\theta_{old}}$$ for $$T$$ timesteps. The samples are subsequently used to form estimates of the various quantities needed to optimize the parameters, such as advantage function and policy gradient. To encourage exploration, one could use asynchronous setting<sup>1</sup> or off-policy setting<sup>2</sup> through importance sampling (for the latter, typically with experience replay<sup>3</sup> to improve stability), though neither choice would alter the core algorithms significantly. Hence for the simplicity in discussion, this post would focus only on the on-policy version of the algorithms.
 
-Policy gradient algorithms are a leading class of model-free reinforcement learning methods. Compared to deep Q-learning^3^, another class of very successful value-based methods, policy gradients are considered to be more soundly grounded theoretically. The theories can be traced back to the ground-breaking work of Richard Sutton et al on the policy gradient theorem^4^, which provided a theoretical formula for the gradients w.r.t. parameters of the policy network. Its generalized form is as follows^5^:
+Policy gradient algorithms are a leading class of model-free reinforcement learning methods. Compared to deep Q-learning<sup>3</sup>, another class of very successful value-based methods, policy gradients are considered to be more soundly grounded theoretically. The theories can be traced back to the ground-breaking work of Richard Sutton et al on the policy gradient theorem<sup>4</sup>, which provided a theoretical formula for the gradients w.r.t. parameters of the policy network. Its generalized form is as follows<sup>5</sup>:
+
 $$
 \hat{g}=\mathbb{E}_{s,a\sim\pi_\theta}[\sum\limits_{t=0}^\infin\Psi_t\nabla_\theta\log\pi_\theta(a_t|s_t)]
 $$
+
 where $$\Psi_t$$ typically takes the form of a Q-value function, an advantage function, a TD-residual of value functions, or simply the sum of (discounted) rewards of the sampled trajectory, among other choices. Meanwhile, it is almost imperative in practice to subtract from $$\Psi_t$$ a baseline $$b_t$$, which is a function of the state $$s_t$$ at timestep $$t$$ (a natural choice would be the value function), in order to reduce the high variance of this gradient estimator. Evidently, this necessitates a value network to estimate the value function, in addition to a policy network in deep policy gradient methods. In practice, however, it is common to share the majority of the parameters for the two networks.
 
 The policy gradient provides the direction to update the policy network parameters and is used by the update rule $$\theta\gets\theta+\alpha\Delta\theta$$. Although the size of the update is not theoretically specified by the policy gradient, naively, one could simply use $$\Delta\theta\gets\hat{g}$$ and leave the learning rate or step size $$\alpha$$ as a hyperparameter, as is the standard procedure in deep learning framework. Classical policy gradient algorithms such as REINFORCE adopted this formulation. However, in the context of policy gradient methods, the algorithms could benefit from a more careful consideration for the step size. 
 
 The analysis starts with the implicit assumption behind the policy gradient theorem, in that it is the solution to a constrained optimization problem of the following format:
+
 $$
 \DeclareMathOperator*{\argmax}{argmax}\\
 g\gets\argmax\limits_g J(\theta+g)\;\text{ subject to a constraint}\;||g||\le\epsilon
 $$
+
 where the objective function $$J(\theta)=V_{\pi_\theta}(s_t)$$ is the "true" state-value function following current policy $$\pi_\theta$$. The constraint applies a bound on the L2-norm (or Euclidian distance) of the parameter gradient $$g$$, which sets a maximum step size $$\epsilon$$. 
 
 However, it is difficult to select a proper bound on the step size in practice.  If the step size is too small, the learning becomes very slow; if too large, the update may not be optimal or even positive. This difficulty arises with the fact that in the naive formulation of the constrained optimization problem, the constraint is bounded in the parameter space. What the algorithm really needed, though, is a constraint bounded in the policy function space directly. In this manner, the algorithm could have better control of the resulting updated policy function after each iteration; ideally, we want to ensure that the algorithm could take the largest possible step size (hence fastest learning speed) that satisfies the constraint on the resulting policy.
 
-This train of thought led to the development of the natural policy gradient^6^ methods, which is a solution to a different constrained optimization problem:
+This train of thought led to the development of the natural policy gradient<sup>6</sup> methods, which is a solution to a different constrained optimization problem:
+
 $$
 \DeclareMathOperator*{\argmax}{argmax}\\
 g\gets\argmax\limits_g J(\theta+g)\;\text{ subject to a constraint}\;D_{KL}[\pi_{\theta_{old}}|\pi_\theta]\le\delta
 $$
+
 where the objective function is the same as before, and the constraint is now a KL divergence on the two policy functions, as parameterized by the parameters before and after the current update, respectively. The KL divergence is a measure of distance between two probability distributions $$P$$ and $$Q$$ such that $$D_{KL}[P|Q]=\int\limits_{-\infin}^{+\infin}P(x)\log(\frac{P(x)}{Q(x)})dx$$. 
 
 How to solve this problem? A general methodology for constrained optimization problems with inequalities is the so called Karush-Kuhn-Tucker (KKT) method, which is a generalization from the classic Lagrangian Multiplier method. As a result, if taken a quadratic approximation, this KL divergence could be related to the Fisher Information Matrix (FIM) by:
+
 $$
 \mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\nabla_\theta^2 D_{KL}(\pi_{\theta_{old}}(\cdot|s)||\pi_\theta(\cdot|s))]|_{\theta=\theta_{old}}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\nabla_\theta\log\pi_\theta(\cdot|s)\nabla_\theta\log\pi_\theta(\cdot|s)^T]|_{\theta=\theta_{old}}=F(\theta_{old})
 $$
-In other words, the Hessian matrix of the KL divergence is equal to the covariate matrix of the policy gradient, which in turn is the definition of the FIM. Any algorithm based on the natural policy gradient is thus second-order, as it is required to compute the FIM, which can become prohibitively expensive to do so for large state spaces. In practice, it is usually preferable to compute the Hessian rather than the covariate thanks to the conjugate gradient algorithm^7^, which allows using the FIM in subsequent gradient estimation without actually computing the entire second-order matrix.
+
+In other words, the Hessian matrix of the KL divergence is equal to the covariate matrix of the policy gradient, which in turn is the definition of the FIM. Any algorithm based on the natural policy gradient is thus second-order, as it is required to compute the FIM, which can become prohibitively expensive to do so for large state spaces. In practice, it is usually preferable to compute the Hessian rather than the covariate thanks to the conjugate gradient algorithm<sup>7</sup>, which allows using the FIM in subsequent gradient estimation without actually computing the entire second-order matrix.
 
 Following the solution, the natural policy gradient and the corresponding bound on the step size are given by the theorem as:
+
 $$
 \begin{split}
 g_N&\gets F^{-1}\hat{g}\;\text{where }\hat{g}\text{ is vanilla policy gradient}\\
 \theta&\gets\theta+\alpha g_N \;\text{where }\alpha=\sqrt{\frac{2\delta}{g_N^TF^{-1}g_N}}
 \end{split}
 $$
+
 Either the vanilla policy gradient theorem or the natural gradient theorem forms the skeleton of a deep policy gradient algorithm. But for the algorithm to work in practice, more auxiliary accommodations needed to be made. Consequently, policy gradient algorithms could typically be distinguished by the following 4 key characteristics:
 
 **The objective function.** At first glance it seemed trivial to always use the "true" value function as the objective for optimization, as is the case for the previous theorems. But a "true" value function can be very difficult to optimize, particularly for large state spaces. Modern deep policy gradient methods instead opted for optimizing a so called "surrogate" objective function. A surrogate objective could be expressed in a simpler and explicit form, thus simplifying the training process, while simultaneously it is guaranteed that an improvement in the surrogate objective always corresponds an improvement in the "true" objective, albeit within a certain boundary in the parameter space (the trust region). Or so the theory promises. In practical algorithms, however, it is seldom explicitly proven that the chosen surrogate objective guarantees improvements in the "true" value function; this is more of an implicit assumption rather than an explicit proof. 
 
-* The TRPO surrogate objective^7^:
+* The TRPO surrogate objective<sup>7</sup>:
+  
   $$
   L(\theta)^{TRPO}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\frac{\pi_\theta(a|s)}{\pi_{\theta_{old}}(a|s)}\hat{Q}(s,a)]
   $$
-  note that the Q-value function (as in original paper) could be replaced by the advantage function; this is the same surrogate as CPI^11^
+  
+  note that the Q-value function (as in original paper) could be replaced by the advantage function; this is the same surrogate as CPI<sup>11</sup>
 
-* The PPO-clipped surrogate objective^8^:
+* The PPO-clipped surrogate objective<sup>8</sup>:
+  
   $$
   L(\theta)^{PPO-CLIP}=L^{CLP}(\theta)-c_1L^{VF}(\theta)+c_2S(\theta)
   $$
+  
   where $$L^{CLP}(\theta)$$ is a clipped version of the TRPO surrogate, $$L^{VF}(\theta)$$ is the MSE loss for value network, and $$S(\theta)$$ is the mean entropy of the policy.
 
-* The PPO-penalty surrogate objective^8,9^:
+* The PPO-penalty surrogate objective<sup>8,9</sup>:
 
 $$
 L(\theta)^{PPO-PEN}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}\hat{A}_t]-\lambda D_{KL}[\pi_{\theta_{old}}||\pi_{\theta}]
@@ -101,15 +115,17 @@ $$
 
 **The value estimator.** Both the choice of surrogate objective and the gradient estimator usually require estimates to some value function (state-value, action-value, or advantage value function). Since the surrogate objective should approach the "true" objective, which is a state value function, it is no surprise that most papers chose surrogate functions incorporating estimates to the value function in certain manners. As for the gradient estimator, as mentioned before, it is imperative to deduct a value function as baseline from the estimator to reduce variance in practice.
 
-Value estimation is usually done by a value network, in addition to a policy network. The two networks can and often do share parameters. There are various ways for estimating the value function, the Q-value function and the advantage function, and they may differ yet again in off-policy settings for low-variance considerations. TRPO simply uses a Monte-Carlo estimate for its Q-value approximator, which is high-variance and works only on-policy. PPO and later works prefer to instead approximate the advantage function using the generalized advantage estimation^5^, where:
+Value estimation is usually done by a value network, in addition to a policy network. The two networks can and often do share parameters. There are various ways for estimating the value function, the Q-value function and the advantage function, and they may differ yet again in off-policy settings for low-variance considerations. TRPO simply uses a Monte-Carlo estimate for its Q-value approximator, which is high-variance and works only on-policy. PPO and later works prefer to instead approximate the advantage function using the generalized advantage estimation<sup>5</sup>, where:
+
 $$
 \hat{A}_t^{GAE(\gamma,\lambda)}=\sum\limits_{l=0}^\infin(\gamma\lambda)^l\delta_{t+l}^V\\
 $$
+
 where $$\delta_t^V=r_t+\gamma\hat{V}_\phi(s_{t+1})-\hat{V}_\phi(s_t)$$ is the TD-residual between two successive states. This estimator has been widely adopted mainly because it is flexible; the hyperparameters $$\lambda,\gamma$$ facilitate smooth bias-variance tuning for the estimation. In theory, as the authors concluded in the GAE paper, it also only introduces a small (and diminishing w.r.t. longer trajectory lengths) bias into the gradient estimator compared to more traditional methods. 
 
-When adapted to off-policy setting, one faces the challenge of higher variance. A commonly used off-policy estimator for the Q-value function is the Retrace algorithm by Munos et al (2016). The ACER paper^2^ , which focuses on off-policy adaptation of policy gradient methods in actor-critic style, further borrowed an idea called stochastic dueling networks (SDNs) from Wang et al (2015) as an off-policy method to estimate the Q-value and the state-value function simultaneously in the continuous domain.
+When adapted to off-policy setting, one faces the challenge of higher variance. A commonly used off-policy estimator for the Q-value function is the Retrace algorithm by Munos et al (2016). The ACER paper<sup>2</sup> , which focuses on off-policy adaptation of policy gradient methods in actor-critic style, further borrowed an idea called stochastic dueling networks (SDNs) from Wang et al (2015) as an off-policy method to estimate the Q-value and the state-value function simultaneously in the continuous domain.
 
-**The optimizer.** The optimizer describes the update rule for the trained parameters; in its simplest form, $$\theta\gets\theta+\alpha\Delta\theta$$. Although this seems very simple, for anyone coming to the deep RL world from a deep learning background, the (seemingly excessive) considerations for the optimizer is perhaps the most confusing aspect of a sophisticated algorithm. Deep learning people have familiarized themselves with out-of-the-box optimizers such as SGD, Adam, RMSprop, to name a few. The only aspects about optimization that people actually need to care about during training are the choice of batch size and the schedule of the learning rate, which incidentally also follow a straightforward inverse-linear relationship^10^.
+**The optimizer.** The optimizer describes the update rule for the trained parameters; in its simplest form, $$\theta\gets\theta+\alpha\Delta\theta$$. Although this seems very simple, for anyone coming to the deep RL world from a deep learning background, the (seemingly excessive) considerations for the optimizer is perhaps the most confusing aspect of a sophisticated algorithm. Deep learning people have familiarized themselves with out-of-the-box optimizers such as SGD, Adam, RMSprop, to name a few. The only aspects about optimization that people actually need to care about during training are the choice of batch size and the schedule of the learning rate, which incidentally also follow a straightforward inverse-linear relationship<sup>10</sup>.
 
 The primary consideration that distinguishes deep reinforcement learning from deep learning in the context of optimization is the step size or the learning rate. Any gradient-based optimization method needs to consider two quantities: the direction of the update and the step of update. In deep learning, the direction is the gradient direction, which is also in theory the direction with steepest descent. The learning rate is implicitly assumed to be a hyperparameter, adaptive maybe, but nonetheless independent of any iteration of the algorithm itself; that is, the learning rate at any given iteration of the training process is not determined by the algorithm, but rather by an external scheduler independently.
 
@@ -121,7 +137,7 @@ Now we are ready to look in details at the two leading algorithms: TRPO and PPO 
 
 #### TRPO = Natural Policy Gradient + Line Search
 
-The main idea behind TRPO^7^ is a re-formulation of the natural policy gradient theorem. By doing so the authors were able to prove theoretically that the algorithm (in its theoretical form) guarantees monotonic policy improvement^11^. The practical algorithm is a combination of natural policy gradient estimator with a line search sub-routine for step size. The detailed practical algorithm is listed as follows:
+The main idea behind TRPO<sup>7^</sup> is a re-formulation of the natural policy gradient theorem. By doing so the authors were able to prove theoretically that the algorithm (in its theoretical form) guarantees monotonic policy improvement<sup>11</sup>. The practical algorithm is a combination of natural policy gradient estimator with a line search sub-routine for step size. The detailed practical algorithm is listed as follows:
 
 **Algorithm \| TRPO with line search and Monte Carlo estimation**
 
@@ -159,7 +175,7 @@ An apparent drawback in the TRPO algorithm is the use of Monte-Carlo estimates f
 
 #### PPO = 1^st^-order TRPO
 
-PPO algorithm^8^ could be viewed as an advancement from the TRPO algorithm:
+PPO algorithm<sup>8</sup> could be viewed as an advancement from the TRPO algorithm:
 
 * replaces the constrained optimization problem with second-order solution by an unconstrained problem with first-order solution
 * replaces the surrogate objective by a clipped (or penalized) version that is penalized when the step size is too large
@@ -198,11 +214,11 @@ PPO algorithm^8^ could be viewed as an advancement from the TRPO algorithm:
 
    6. Update $$\theta$$ by a gradient-based optimizer (e.g., SGD, Adam) w.r.t. to $$L(\theta)$$; set $$\theta_{i+1}=\theta$$
 
-The main motivation behind PPO is to remove the KL-divergence constraint so that the algorithm could become first-order, without hurting too much of the stability. Without the constraint, the original TRPO objective may lead to excessively large policy update. By clipping the objective, it penalizes moving too far from $$\theta_{old}$$ in one update. This penalty could also be achieved by using a KL-divergence penalty term in the objective function directly; the resulting algorithm is still first-order. The latter idea is further explored in the DPPO-penalty paper^9^ in distributed settings.
+The main motivation behind PPO is to remove the KL-divergence constraint so that the algorithm could become first-order, without hurting too much of the stability. Without the constraint, the original TRPO objective may lead to excessively large policy update. By clipping the objective, it penalizes moving too far from $$\theta_{old}$$ in one update. This penalty could also be achieved by using a KL-divergence penalty term in the objective function directly; the resulting algorithm is still first-order. The latter idea is further explored in the DPPO-penalty paper<sup>9</sup> in distributed settings.
 
 #### A closer look at PPO and TRPO
 
-In ICLR 2020, Andrew Ilyas et al^12^ shed more light on the correlation between the empirical behaviors of deep policy gradient algorithms and their theoretical expectations. To this end, the authors conducted experiments on continuous domains (using the MuJoCo physics engine) for PPO and TRPO algorithms. Their analysis rests upon the following key methodologies:
+In ICLR 2020, Andrew Ilyas et al<sup>12</sup> shed more light on the correlation between the empirical behaviors of deep policy gradient algorithms and their theoretical expectations. To this end, the authors conducted experiments on continuous domains (using the MuJoCo physics engine) for PPO and TRPO algorithms. Their analysis rests upon the following key methodologies:
 
 * use the statistics on a large number of samples (up to ~1M) in terms of state-action pairs in a trajectory to represent the "true" quantities, such as the value function and the policy gradient
 * use averaged pair-wise cosine similarities within a batch of independent rollouts as a measure for the variance

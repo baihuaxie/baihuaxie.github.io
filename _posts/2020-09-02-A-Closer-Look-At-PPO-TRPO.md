@@ -51,7 +51,7 @@ This train of thought led to the development of the natural policy gradient<sup>
 
 $$
 \DeclareMathOperator*{\argmax}{argmax}\\
-g\gets\argmax\limits_g J(\theta+g)\;\text{ subject to a constraint}\;D_{KL}[\pi_{\theta_{old}}\|\pi_\theta]\le\delta
+g\gets\argmax\limits_g J(\theta+g)\;\text{ subject to a constraint}\;D_{KL}[\pi_{\theta_{old}}|\pi_\theta]\le\delta
 $$
 
 where the objective function is the same as before, and the constraint is now a KL divergence on the two policy functions, as parameterized by the parameters before and after the current update, respectively. The KL divergence is a measure of distance between two probability distributions $$P$$ and $$Q$$ such that $$D_{KL}[P\|Q]=\int\limits_{-\infty}^{+\infty}P(x)\log(\frac{P(x)}{Q(x)})dx$$. 
@@ -59,7 +59,7 @@ where the objective function is the same as before, and the constraint is now a 
 How to solve this problem? A general methodology for constrained optimization problems with inequalities is the so called Karush-Kuhn-Tucker (KKT) method, which is a generalization from the classic Lagrangian Multiplier method. As a result, if taken a quadratic approximation, this KL divergence could be related to the Fisher Information Matrix (FIM) by:
 
 $$
-\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\nabla_\theta^2 D_{KL}(\pi_{\theta_{old}}(\cdot\|s)||\pi_\theta(\cdot\|s))]\|_{\theta=\theta_{old}}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\nabla_\theta\log\pi_\theta(\cdot\|s)\nabla_\theta\log\pi_\theta(\cdot\|s)^T]\|_{\theta=\theta_{old}}=F(\theta_{old})
+\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\nabla_\theta^2 D_{KL}(\pi_{\theta_{old}}(\cdot\|s)||\pi_\theta(\cdot\|s))]\|_{\theta=\theta_{old}}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\nabla_\theta\log\pi_\theta(\cdot|s)\nabla_\theta\log\pi_\theta(\cdot|s)^T]\|_{\theta=\theta_{old}}=F(\theta_{old})
 $$
 
 In other words, the Hessian matrix of the KL divergence is equal to the covariate matrix of the policy gradient, which in turn is the definition of the FIM. Any algorithm based on the natural policy gradient is thus second-order, as it is required to compute the FIM, which can become prohibitively expensive to do so for large state spaces. In practice, it is usually preferable to compute the Hessian rather than the covariate thanks to the conjugate gradient algorithm<sup>7</sup>, which allows using the FIM in subsequent gradient estimation without actually computing the entire second-order matrix.
@@ -80,7 +80,7 @@ Either the vanilla policy gradient theorem or the natural gradient theorem forms
 * The TRPO surrogate objective<sup>7</sup>:
   
   $$
-  L(\theta)^{TRPO}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\frac{\pi_\theta(a\|s)}{\pi_{\theta_{old}}(a\|s)}\hat{Q}(s,a)]
+  L(\theta)^{TRPO}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\frac{\pi_\theta(a|s)}{\pi_{\theta_{old}}(a|s)}\hat{Q}(s,a)]
   $$
   
   note that the Q-value function (as in original paper) could be replaced by the advantage function; this is the same surrogate as CPI<sup>11</sup>
@@ -96,7 +96,7 @@ Either the vanilla policy gradient theorem or the natural gradient theorem forms
 * The PPO-penalty surrogate objective<sup>8,9</sup>:
 
 $$
-L(\theta)^{PPO-PEN}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\frac{\pi_\theta(a_t\|s_t)}{\pi_{\theta_{old}}(a_t\|s_t)}\hat{A}_t]-\lambda D_{KL}[\pi_{\theta_{old}}||\pi_{\theta}]
+L(\theta)^{PPO-PEN}=\mathbb{E}_{s,a\sim\pi_{\theta_{old}}}[\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}\hat{A}_t]-\lambda D_{KL}[\pi_{\theta_{old}}|\pi_{\theta}]
 $$
 
 **The gradient estimator.** For methods assuming the "true" (and implicit) value function as the objective, it is convenient to estimate policy gradient by either the vanilla policy gradient theorem or the more sophisticated natural policy gradient. Even with an explicit surrogate objective function, sometimes it is still difficult to express the policy gradient w.r.t. $$\theta$$ by simply taking $$\nabla_\theta L(\theta)$$, as an extra constraint (if exists) can complicate the solution. For instance, TRPO solves a KL-divergence constrained optimization problem, thus it still requires help from the natural policy gradient theorem to form its gradient estimator. On the other hand, by using a different surrogate function, PPO simultaneously removed the constraint altogether, thus for its unconstrained optimization problem, the gradient could be easily obtained directly from the surrogate. 
@@ -149,14 +149,14 @@ The main idea behind TRPO<sup>7^</sup> is a re-formulation of the natural policy
 
    2. Estimate the objective function and KL constraint by averaging over samples and construct the constrained optimization problem as:
 
-      $$\DeclareMathOperator*{\maximize}{maximize}\maximize\limits_\theta\mathbb{E}_{s\sim\rho_{\theta_i},a\sim q}[\frac{\pi_\theta(a\|s)}{q(a\|s)}\hat{Q}(s,a)]\;\text{subject to}\;\mathbb{E}_{s\sim\rho_{\theta_i}}[D_{KL}(\pi_{\theta_i}\|\|\pi_\theta)]\le\delta$$  (averaging means to treat expectation as $$\frac{1}{N}\sum\limits_{i=1}^N$$)
+      $$\DeclareMathOperator*{\maximize}{maximize}\maximize\limits_\theta\mathbb{E}_{s\sim\rho_{\theta_i},a\sim q}[\frac{\pi_\theta(a|s)}{q(a|s)}\hat{Q}(s,a)]\;\text{subject to}\;\mathbb{E}_{s\sim\rho_{\theta_i}}[D_{KL}(\pi_{\theta_i}|\pi_\theta)]\le\delta$$  (averaging means to treat expectation as $$\frac{1}{N}\sum\limits_{i=1}^N$$)
 
    3. Construct necessary estimated items for the constrained optimization problem by the following sub-routine:
 
       1. use sample average to estimate the Fisher Information matrix $$\hat{F}_i=\hat{F}(\theta_i)$$
-         1. by using the covariance matrix of policy gradients: $$\hat{F}(\theta_i)=\mathbb{E}_{s\sim\rho_{\theta}}[\nabla_\theta\log\pi_\theta(\cdot\|s)\nabla_\theta\log\pi_\theta(\cdot\|s)^T]\|_{\theta=\theta_i}$$
-         2. or, by constructing the Hessian matrix of KL divergence approximately: $$\hat{F}(\theta_i)=\hat{H}(\theta_i)=\mathbb{E}_{s\sim\rho_{\theta}}[\nabla_\theta^2 D_{KL}(\pi_{\theta_i}(\cdot\|s)||\pi_\theta(\cdot\|s))]\|_{\theta=\theta_i}$$
-      2. estimate the policy gradient by the policy gradient theorem and sample averages: $$\hat{g}=\mathbb{E}_{s\sim\rho_{\theta_i},a\sim p}[\nabla_\theta\log\pi_\theta(a\|s)\hat{Q}(s,a)]\|_{\theta=\theta_i}$$
+         1. by using the covariance matrix of policy gradients: $$\hat{F}(\theta_i)=\mathbb{E}_{s\sim\rho_{\theta}}[\nabla_\theta\log\pi_\theta(\cdot|s)\nabla_\theta\log\pi_\theta(\cdot|s)^T]\|_{\theta=\theta_i}$$
+         2. or, by constructing the Hessian matrix of KL divergence approximately: $$\hat{F}(\theta_i)=\hat{H}(\theta_i)=\mathbb{E}_{s\sim\rho_{\theta}}[\nabla_\theta^2 D_{KL}(\pi_{\theta_i}(\cdot\|s)\|\pi_\theta(\cdot\|s))]\|_{\theta=\theta_i}$$
+      2. estimate the policy gradient by the policy gradient theorem and sample averages: $$\hat{g}=\mathbb{E}_{s\sim\rho_{\theta_i},a\sim p}[\nabla_\theta\log\pi_\theta(a|s)\hat{Q}(s,a)]\|_{\theta=\theta_i}$$
       3. estimate the natural policy gradient step size (also the maximal step size): $$\alpha_i=\sqrt{\frac{2\delta}{\hat{g}^TF_i^{-1}\hat{g}}}$$
 
    4. Construct the natural policy update: $$\Delta_i=\alpha_i\hat{F}_i^{-1}\hat{g}$$
@@ -165,8 +165,8 @@ The main idea behind TRPO<sup>7^</sup> is a re-formulation of the natural policy
 
       1. compute update: $$\theta=\theta_i+\beta^j\Delta_i$$ where $$\beta^j$$ is chosen s.t. it exponentially decays the maximal step size $$\alpha_i$$
       2. check two conditions to see if both are true:
-         1. the objective function is improved; equivalent to: $$L_{\theta_i}(\theta)=\mathbb{E}_{s\sim\rho_{\theta_i},a\sim q}[\frac{\pi_\theta(a\|s)}{q(a\|s)}\hat{Q}(s,a)]\ge0$$
-         2. the KL divergence constraint is kept: $$\bar{D}_{KL}=\mathbb{E}_{s\sim\rho_{\theta_i}}[D_{KL}(\pi_{\theta_i}\|\|\pi_\theta)]\le\delta$$, where $$D_{KL}=\mathbb{E}_{a\sim \pi_{\theta_i}}[\log\frac{\pi_\theta(a\|s)}{\pi_{\theta_i}(a\|s)}]$$
+         1. the objective function is improved; equivalent to: $$L_{\theta_i}(\theta)=\mathbb{E}_{s\sim\rho_{\theta_i},a\sim q}[\frac{\pi_\theta(a|s)}{q(a|s)}\hat{Q}(s,a)]\ge0$$
+         2. the KL divergence constraint is kept: $$\bar{D}_{KL}=\mathbb{E}_{s\sim\rho_{\theta_i}}[D_{KL}(\pi_{\theta_i}|\pi_\theta)]\le\delta$$, where $$D_{KL}=\mathbb{E}_{a\sim \pi_{\theta_i}}[\log\frac{\pi_\theta(a|s)}{\pi_{\theta_i}(a|s)}]$$
          3. if so then do:
             1. accept the update and set: $$\theta_{i+1}=\theta_i+\beta^j\Delta_i$$
             2. break inner for loop for next iteration
@@ -209,7 +209,7 @@ PPO algorithm<sup>8</sup> could be viewed as an advancement from the TRPO algori
 
       1. compute the clipped surrogate loss: $$L^{CLP}(\theta)=\hat{\mathbb{E}}_t[\min(\frac{\pi(a_t\|s_t;\theta)}{\pi(a_t\|s_t;\theta_i)}\hat{A}_t^{GAE(\gamma,\lambda)}, \text{clip}(\frac{\pi(a_t\|s_t;\theta)}{\pi(a_t\|s_t;\theta_i)}, 1-\epsilon,1+\epsilon)\hat{A}_t^{GAE(\gamma,\lambda)}]$$
       2. compute the value function squared loss: $$L^{VF}(\theta)=\hat{\mathbb{E}}_t[(V(s_t;\theta_i)-\hat{V}(s_t))^2]$$, where $$\hat{V}(s_t)=\sum\limits_{l=0}^{T-1}\gamma^lr_{t+l}$$ is the estimate for value target
-      3. compute the entropy of policy function: $$S(\theta)=\hat{\mathbb{E}}_t[\pi(a_t\|s_t;\theta)\log(\frac{1}{\pi(a_t\|s_t;\theta)})]$$
+      3. compute the entropy of policy function: $$S(\theta)=\hat{\mathbb{E}}_t[\pi(a_t|s_t;\theta)\log(\frac{1}{\pi(a_t|s_t;\theta)})]$$
       4. construct the objective function as the weighted sum of the three terms: $$L(\theta)=L^{CLP}(\theta)-c_1L^{VF}(\theta)+c_2S(\theta)$$
 
    6. Update $$\theta$$ by a gradient-based optimizer (e.g., SGD, Adam) w.r.t. to $$L(\theta)$$; set $$\theta_{i+1}=\theta$$

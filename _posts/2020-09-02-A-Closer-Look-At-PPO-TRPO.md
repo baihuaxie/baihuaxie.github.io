@@ -29,7 +29,7 @@ The basic RL problem setting is assumed in the discussion. The agent has access 
 Policy gradient algorithms are a leading class of model-free reinforcement learning methods. Compared to deep Q-learning<sup>3</sup>, another class of very successful value-based methods, policy gradients are considered to be more soundly grounded theoretically. The theories can be traced back to the ground-breaking work of Richard Sutton et al on the policy gradient theorem<sup>4</sup>, which provided a theoretical formula for the gradients w.r.t. parameters of the policy network. Its generalized form is as follows<sup>5</sup>:
 
 $$
-\hat{g}=\mathbb{E}_{s,a\sim\pi_\theta}\[\sum\limits_{t=0}^\infty\Psi_t\nabla_\theta\log\pi_\theta(a_t|s_t)\]
+\hat{g}=\mathbb{E}_{s,a\sim\pi_\theta}[\sum\limits_{t=0}^\infty\Psi_t\nabla_\theta\log\pi_\theta(a_t|s_t)]
 $$
 
 where $$\Psi_t$$ typically takes the form of a Q-value function, an advantage function, a TD-residual of value functions, or simply the sum of (discounted) rewards of the sampled trajectory, among other choices. Meanwhile, it is almost imperative in practice to subtract from $$\Psi_t$$ a baseline $$b_t$$, which is a function of the state $$s_t$$ at timestep $$t$$ (a natural choice would be the value function), in order to reduce the high variance of this gradient estimator. Evidently, this necessitates a value network to estimate the value function, in addition to a policy network in deep policy gradient methods. In practice, however, it is common to share the majority of the parameters for the two networks.

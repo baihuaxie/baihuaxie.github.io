@@ -137,7 +137,7 @@ Now we are ready to look in details at the two leading algorithms: TRPO and PPO 
 
 #### TRPO = Natural Policy Gradient + Line Search
 
-The main idea behind TRPO<sup>7^</sup> is a re-formulation of the natural policy gradient theorem. By doing so the authors were able to prove theoretically that the algorithm (in its theoretical form) guarantees monotonic policy improvement<sup>11</sup>. The practical algorithm is a combination of natural policy gradient estimator with a line search sub-routine for step size. The detailed practical algorithm is listed as follows:
+The main idea behind TRPO<sup>7</sup> is a re-formulation of the natural policy gradient theorem. By doing so the authors were able to prove theoretically that the algorithm (in its theoretical form) guarantees monotonic policy improvement<sup>11</sup>. The practical algorithm is a combination of natural policy gradient estimator with a line search sub-routine for step size. The detailed practical algorithm is listed as follows:
 
 **Algorithm \| TRPO with line search and Monte Carlo estimation**
 

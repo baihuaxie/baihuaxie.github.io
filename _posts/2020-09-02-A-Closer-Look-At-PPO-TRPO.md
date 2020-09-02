@@ -29,7 +29,7 @@ The basic RL problem setting is assumed in the discussion. The agent has access 
 Policy gradient algorithms are a leading class of model-free reinforcement learning methods. Compared to deep Q-learning<sup>3</sup>, another class of very successful value-based methods, policy gradients are considered to be more soundly grounded theoretically. The theories can be traced back to the ground-breaking work of Richard Sutton et al on the policy gradient theorem<sup>4</sup>, which provided a theoretical formula for the gradients w.r.t. parameters of the policy network. Its generalized form is as follows<sup>5</sup>:
 
 $$
-\hat{g}=\mathbb{E}_{s,a\sim\pi_\theta}[\sum\limits_{t=0}^\infin\Psi_t\nabla_\theta\log\pi_\theta(a_t\|s_t)]
+\hat{g}=\mathbb{E}_{s,a\sim\pi_\theta}[\sum\limits_{t=0}^\infty\Psi_t\nabla_\theta\log\pi_\theta(a_t\|s_t)]
 $$
 
 where $$\Psi_t$$ typically takes the form of a Q-value function, an advantage function, a TD-residual of value functions, or simply the sum of (discounted) rewards of the sampled trajectory, among other choices. Meanwhile, it is almost imperative in practice to subtract from $$\Psi_t$$ a baseline $$b_t$$, which is a function of the state $$s_t$$ at timestep $$t$$ (a natural choice would be the value function), in order to reduce the high variance of this gradient estimator. Evidently, this necessitates a value network to estimate the value function, in addition to a policy network in deep policy gradient methods. In practice, however, it is common to share the majority of the parameters for the two networks.
@@ -54,7 +54,7 @@ $$
 g\gets\argmax\limits_g J(\theta+g)\;\text{ subject to a constraint}\;D_{KL}[\pi_{\theta_{old}}\|\pi_\theta]\le\delta
 $$
 
-where the objective function is the same as before, and the constraint is now a KL divergence on the two policy functions, as parameterized by the parameters before and after the current update, respectively. The KL divergence is a measure of distance between two probability distributions $$P$$ and $$Q$$ such that $$D_{KL}[P\|Q]=\int\limits_{-\infin}^{+\infin}P(x)\log(\frac{P(x)}{Q(x)})dx$$. 
+where the objective function is the same as before, and the constraint is now a KL divergence on the two policy functions, as parameterized by the parameters before and after the current update, respectively. The KL divergence is a measure of distance between two probability distributions $$P$$ and $$Q$$ such that $$D_{KL}[P\|Q]=\int\limits_{-\infty}^{+\infty}P(x)\log(\frac{P(x)}{Q(x)})dx$$. 
 
 How to solve this problem? A general methodology for constrained optimization problems with inequalities is the so called Karush-Kuhn-Tucker (KKT) method, which is a generalization from the classic Lagrangian Multiplier method. As a result, if taken a quadratic approximation, this KL divergence could be related to the Fisher Information Matrix (FIM) by:
 
@@ -118,7 +118,7 @@ $$
 Value estimation is usually done by a value network, in addition to a policy network. The two networks can and often do share parameters. There are various ways for estimating the value function, the Q-value function and the advantage function, and they may differ yet again in off-policy settings for low-variance considerations. TRPO simply uses a Monte-Carlo estimate for its Q-value approximator, which is high-variance and works only on-policy. PPO and later works prefer to instead approximate the advantage function using the generalized advantage estimation<sup>5</sup>, where:
 
 $$
-\hat{A}_t^{GAE(\gamma,\lambda)}=\sum\limits_{l=0}^\infin(\gamma\lambda)^l\delta_{t+l}^V\\
+\hat{A}_t^{GAE(\gamma,\lambda)}=\sum\limits_{l=0}^\infty(\gamma\lambda)^l\delta_{t+l}^V\\
 $$
 
 where $$\delta_t^V=r_t+\gamma\hat{V}_\phi(s_{t+1})-\hat{V}_\phi(s_t)$$ is the TD-residual between two successive states. This estimator has been widely adopted mainly because it is flexible; the hyperparameters $$\lambda,\gamma$$ facilitate smooth bias-variance tuning for the estimation. In theory, as the authors concluded in the GAE paper, it also only introduces a small (and diminishing w.r.t. longer trajectory lengths) bias into the gradient estimator compared to more traditional methods. 
@@ -149,12 +149,12 @@ The main idea behind TRPO<sup>7^</sup> is a re-formulation of the natural policy
 
    2. Estimate the objective function and KL constraint by averaging over samples and construct the constrained optimization problem as:
 
-      $$\DeclareMathOperator*{\maximize}{maximize}\maximize\limits_\theta\mathbb{E}_{s\sim\rho_{\theta_i},a\sim q}[\frac{\pi_\theta(a\|s)}{q(a\|s)}\hat{Q}(s,a)]\;\text{subject to}\;\mathbb{E}_{s\sim\rho_{\theta_i}}[D_{KL}(\pi_{\theta_i}||\pi_\theta)]\le\delta$$  (averaging means to treat expectation as $$\frac{1}{N}\sum\limits_{i=1}^N$$)
+      $$\DeclareMathOperator*{\maximize}{maximize}\maximize\limits_\theta\mathbb{E}_{s\sim\rho_{\theta_i},a\sim q}[\frac{\pi_\theta(a\|s)}{q(a\|s)}\hat{Q}(s,a)]\;\text{subject to}\;\mathbb{E}_{s\sim\rho_{\theta_i}}[D_{KL}(\pi_{\theta_i}\|\|\pi_\theta)]\le\delta$$  (averaging means to treat expectation as $$\frac{1}{N}\sum\limits_{i=1}^N$$)
 
    3. Construct necessary estimated items for the constrained optimization problem by the following sub-routine:
 
       1. use sample average to estimate the Fisher Information matrix $$\hat{F}_i=\hat{F}(\theta_i)$$
-         1. by using the covariance matrix of policy gradients: $$\hat{F}(\theta_i)=\mathbb{E}_{s\sim\rho_{\theta}}[\nabla_\theta\log\pi_\theta(\cdot\|s)\nabla_\theta\log\pi_\theta(\cdot\|s)^T]|_{\theta=\theta_i}$$
+         1. by using the covariance matrix of policy gradients: $$\hat{F}(\theta_i)=\mathbb{E}_{s\sim\rho_{\theta}}[\nabla_\theta\log\pi_\theta(\cdot\|s)\nabla_\theta\log\pi_\theta(\cdot\|s)^T]\|_{\theta=\theta_i}$$
          2. or, by constructing the Hessian matrix of KL divergence approximately: $$\hat{F}(\theta_i)=\hat{H}(\theta_i)=\mathbb{E}_{s\sim\rho_{\theta}}[\nabla_\theta^2 D_{KL}(\pi_{\theta_i}(\cdot\|s)||\pi_\theta(\cdot\|s))]\|_{\theta=\theta_i}$$
       2. estimate the policy gradient by the policy gradient theorem and sample averages: $$\hat{g}=\mathbb{E}_{s\sim\rho_{\theta_i},a\sim p}[\nabla_\theta\log\pi_\theta(a\|s)\hat{Q}(s,a)]\|_{\theta=\theta_i}$$
       3. estimate the natural policy gradient step size (also the maximal step size): $$\alpha_i=\sqrt{\frac{2\delta}{\hat{g}^TF_i^{-1}\hat{g}}}$$
@@ -166,7 +166,7 @@ The main idea behind TRPO<sup>7^</sup> is a re-formulation of the natural policy
       1. compute update: $$\theta=\theta_i+\beta^j\Delta_i$$ where $$\beta^j$$ is chosen s.t. it exponentially decays the maximal step size $$\alpha_i$$
       2. check two conditions to see if both are true:
          1. the objective function is improved; equivalent to: $$L_{\theta_i}(\theta)=\mathbb{E}_{s\sim\rho_{\theta_i},a\sim q}[\frac{\pi_\theta(a\|s)}{q(a\|s)}\hat{Q}(s,a)]\ge0$$
-         2. the KL divergence constraint is kept: $$\bar{D}_{KL}=\mathbb{E}_{s\sim\rho_{\theta_i}}[D_{KL}(\pi_{\theta_i}||\pi_\theta)]\le\delta$$, where $$D_{KL}=\mathbb{E}_{a\sim \pi_{\theta_i}}[\log\frac{\pi_\theta(a\|s)}{\pi_{\theta_i}(a\|s)}]$$
+         2. the KL divergence constraint is kept: $$\bar{D}_{KL}=\mathbb{E}_{s\sim\rho_{\theta_i}}[D_{KL}(\pi_{\theta_i}\|\|\pi_\theta)]\le\delta$$, where $$D_{KL}=\mathbb{E}_{a\sim \pi_{\theta_i}}[\log\frac{\pi_\theta(a\|s)}{\pi_{\theta_i}(a\|s)}]$$
          3. if so then do:
             1. accept the update and set: $$\theta_{i+1}=\theta_i+\beta^j\Delta_i$$
             2. break inner for loop for next iteration
@@ -201,13 +201,13 @@ PPO algorithm<sup>8</sup> could be viewed as an advancement from the TRPO algori
 
    4. Loop for $$t\in1,2,...,T$$, do:
 
-      1. compute advantage estimates using GAE formula: $$\hat{A}_t^{GAE(\gamma,\lambda)}=\sum\limits_{l=0}^\infin(\gamma\lambda)^l\delta_{t+l}^V$$
+      1. compute advantage estimates using GAE formula: $$\hat{A}_t^{GAE(\gamma,\lambda)}=\sum\limits_{l=0}^\infty(\gamma\lambda)^l\delta_{t+l}^V$$
 
    5. Construct the objective function through the following sub-routine by averaging over the mini-batch:
 
       (here $$\hat{\mathbb{E}_t}=\frac{1}{T}\sum\limits_{t=0}^{T-1}$$ is an approximation to the true expectation, $$\mathbb{E}_{s\sim\rho_{\theta_i},a\sim \pi_{\theta_i}}$$)
 
-      1. compute the clipped surrogate loss: $$L^{CLP}(\theta)=\hat{\mathbb{E}}_t[\min(\frac{\pi(a_t\|s_t;\theta)}{\pi(a_t\|s_t;\theta_i)}\hat{A}_t^{GAE(\gamma,\lambda)}, \textcolor{red}{\text{clip}(\frac{\pi(a_t\|s_t;\theta)}{\pi(a_t\|s_t;\theta_i)}, 1-\epsilon,1+\epsilon)}\hat{A}_t^{GAE(\gamma,\lambda)}]$$
+      1. compute the clipped surrogate loss: $$L^{CLP}(\theta)=\hat{\mathbb{E}}_t[\min(\frac{\pi(a_t\|s_t;\theta)}{\pi(a_t\|s_t;\theta_i)}\hat{A}_t^{GAE(\gamma,\lambda)}, \text{clip}(\frac{\pi(a_t\|s_t;\theta)}{\pi(a_t\|s_t;\theta_i)}, 1-\epsilon,1+\epsilon)\hat{A}_t^{GAE(\gamma,\lambda)}]$$
       2. compute the value function squared loss: $$L^{VF}(\theta)=\hat{\mathbb{E}}_t[(V(s_t;\theta_i)-\hat{V}(s_t))^2]$$, where $$\hat{V}(s_t)=\sum\limits_{l=0}^{T-1}\gamma^lr_{t+l}$$ is the estimate for value target
       3. compute the entropy of policy function: $$S(\theta)=\hat{\mathbb{E}}_t[\pi(a_t\|s_t;\theta)\log(\frac{1}{\pi(a_t\|s_t;\theta)})]$$
       4. construct the objective function as the weighted sum of the three terms: $$L(\theta)=L^{CLP}(\theta)-c_1L^{VF}(\theta)+c_2S(\theta)$$

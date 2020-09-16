@@ -42,10 +42,13 @@ The above formulation faces a major challenge in practice: the evaluation of the
 
 The target of NCE is to estimate the empirical data distribution, $$\tilde{p}(v \vert c)$$, by the parameterized model $$P_\theta(v \vert c)$$, where $$v$$ is visual representation of a sample and $$c$$ is the context. Instead of finding smart ways to evaluate the partition function, NCE framework avoided the hurdle altogether by reformulating the problem into a binary logistic regression task. This is done in the following steps (for a more detailed treatment please refer to the [notes by Chris Dyer](https://arxiv.org/abs/1410.8251)): 
 
-1. Generate a two-class dataset.
+1. Generate a two-class dataset
+
    NCE begins by assuming a noise or "proposal" distribution, $$q(v)$$, with which a set of $$m$$ "negative" samples $$\{v^-\}$$ are drawn from the original dataset. In practice this is usually chosen as the uniform distribution, in which case the negative samples are drawn at random. These samples carry with them a label $$D=0$$ indicating that they are negative samples drawn from the noise distribution. Next we draw a "positive" sample $$w^+$$ from the empirical distribution $$\tilde{p}(v \vert c)$$ and label it with $$D=1$$; in practice, algorithms typically treat the current image or its views as the positive sample. There are several ways to generate the negative samples, and how to obtain good quality negative samples remained a vigorously researched topic for contrastive learning methods.
 
+
 2. Model $$h_\theta(v,c)=P(D=1 \vert v,c)$$, the conditional probability of the label $$D$$ being positive given the sample $$v$$ and context $$c$$
+   
    Within the two-class dataset, it is easy to first write the joint probability of $$P(D,v \vert c)$$ as follows:
 
    $$
@@ -78,6 +81,7 @@ The target of NCE is to estimate the empirical data distribution, $$\tilde{p}(v 
 
 
 3. Formulate the NCE loss function $$L_{NCE}$$
+
    The task is now a binary logistic regression to classify a given pair $$(v,c)$$ in the sample as positive ($$D=1$$) or negative ($$D=0$$). The model can be trained using the cross-entropy loss between the model's prediction $$h_\theta(v,c)$$ and the ground truth $$D$$. For a positive pair $$(v^+,c)$$:
 
    $$
@@ -103,7 +107,6 @@ The target of NCE is to estimate the empirical data distribution, $$\tilde{p}(v 
    $$
    L_{NCE}\gets\sum_{w\in\mathcal{B}}\left(-\log h_\theta(v^+,c)-\sum\limits_{i=1}^m\log(1-h_\theta(v_i^-,c))\right)
    $$
-
 
 By re-casting the problem as binary classification, the NCE framework was able to train a model of the empirical distribution $$\tilde{p}(v \vert c)$$ without the softmax partition function. Notice here that the context $$c$$ is not always necessary for learning visual representations, and NCE is still applicable without the it by simply removing all $$c$$'s in the above formulations. This is the case in InstDisc, where there is no context representation, the positive and negative samples are contrasted directly by minimizing the NCE loss. A later work PIRL<sup>8</sup> adopted the NCE framework in InstDisc, with additional context representation. In PIRL, the current image $$v_I$$ and all other images $$v_{I'}$$ in the batch form the positive and negative samples, respectively; the context is a transformed view of the current image $$v_I^t$$. 
 
@@ -158,6 +161,7 @@ Summarizing the losses over a mini-batch would give the InfoNCE loss as formulat
 The InfoNCE loss is simple to implement in practice and clear in its contrastive format, making it an attractive objective function for contrastive learning. A series of works have emerged following a similar paradigm of InstDisc and CPC. They share a common contrastive learning framework that could be characterized as follows:
 
 * Data augmentation
+
   An image in the dataset is first transformed by a string of various data augmentations into what would be known as a view in the contrastive learning literature. Data augmentations are of central importance to contrastive learning, in that: a) combination of data augmentations can effectively subsume a "pretext task"<sup>13</sup>; b) choice of the data augmentation pipeline has significant impact on the quality of the learned representations. In SimCLR<sup>13</sup>, the authors presented extensive ablation studies on the effectiveness of 10 most commonly used data augmentations, including:
 
   {: class="columns is-full is-centered"}
@@ -169,16 +173,24 @@ The InfoNCE loss is simple to implement in practice and clear in its contrastive
 
   One possible reason for the impact of data augmentations on visual representations is perhaps the nature of the visual data. Unlike texts, which consist of invariant word tokens, the raw visual input as images or videos can come in various formats in terms of their resolution, color channels, intensity, etc.. In other words, the raw visual data is very noisy; learning visual representations from a noisy data set would require special care at noise filtering. In practice, the algorithm can work with fixed data augmentation pipelines that are deemed effective, or by stochastically sampling random data augmentations for each view.
 
+
 * View selection
+
   The transformed views are selected as the context (optional), the positive or negative samples. A simple selection scheme is to assign the view from the current image as the positive sample, and views from all other images in the same batch as negative samples. There can also be multiple views through different augmentation pipelines from the same image, including the original, which can be seen as a view through identity transformation. CPC<sup>9,10</sup> is different from other works in this regard by leveraging spatial correlations, in that the views from a single image are from cropped patches at different grid locations, and the context is an autoregressive summary over multiple views.
 
+
 * Sample generation
+
   One big challenge for contrastive learning is that it requires a large number of negative samples for one positive sample in training. The simple way is to use all other views in the same batch as negative samples, e.g., SimCLR. Although effective, this would limit the pool of accessible negative samples by the batch size. Another common approach is to store the views from previous batches in a memory bank<sup>2</sup>, from which the negative samples could be drawn for the current iteration. A similar method is called memory queue<sup>11</sup>, which functions the same way as a memory bank, but differs in that it stores the encoded representations of views instead.
 
+
 * Model architecture
+
   The parameterized network $$f_\theta$$ usually consists of two parts. Firstly, a neural network base encoder transforms the views into visual representations in the latent space. A typical choice for the encoder architecture is ResNet, and it has been shown empirically<sup>10</sup> that scaling up the dimension (depth, width, or receptive field) of the encoder network can improve the quality of learned representations. There have been few works that explored using a better supervised learning architecture, for instance EfficientNet, as the base encoder in contrastive setting. Secondly, the learned representations are projected and contrasted by a neural network projection head, which serves as a score function to produce the contrastive loss. The projection head could be an MLP with hidden layers or simply a linear layer. The networks for positive and negative samples are usually shared and could be trained by standard mini-batch backpropagation, with the exception of MoCo<sup>11,12</sup>, due to its memory queue which stores encoded representations from previous mini-batches. To circumvent this complication, the authors proposed to train the negative encoder separately by momentum update.
 
+
 * Contrastive loss
+
   Currently, InfoNCE or its variants are the most widely used contrastive loss functions. Theoretical justification for this loss function has mostly been centered around a concept known as the mutual information. Minimizing the InfoNCE loss has been shown to be equivalent to maximizing a lower bound on the mutual information between two views<sup>9,15</sup>. As such, the contrastive learning community has yet to be convinced of the MI hypothesis. Tschannen _et al_<sup>16</sup> showed that with a stricter lower bound on the mutual information, the model could empirically learn worse representations. The authors also pointed to a connection between InfoNCE and deep metric learning, in the special case where the model employs symmetric encoders for positive and negative samples as well as a symmetric score function (dubbed "critic" in the paper; simple inner product would be an example of a symmetric critic). Despite the lack of solid theoretical justifications, works based on InfoNCE have been repeatedly shown to excel in practice. There have been few works that explored other choices for the contrastive loss.
 
 In practice, contrastive learning models are typically trained on unlabeled datasets with large amounts of samples and rich visual semantics, such as the ImageNet. The networks are trained by stochastic gradient descent, although more recent works have opted to use more sophisticated optimizers than Adam or SGD. SimCLR and BYOL<sup>17</sup> both used the LARS optimizer for the availability of large batch sizes (up to 32K). The downside of contrastive learning is perhaps that it is now even more costly to train, as these methods typically require training over hundreds of epochs with large batch sizes.

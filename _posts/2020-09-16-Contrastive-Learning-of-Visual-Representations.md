@@ -1,7 +1,7 @@
 ---
 layout: post
 comments: true
-title: "Contrastive Learning of Visual Representations: An Emerging Paradigm"
+title: Contrastive Learning of Visual Representations
 date: 2020-09-16
 author: Baihua Xie
 tags: self-supervised-learning cv

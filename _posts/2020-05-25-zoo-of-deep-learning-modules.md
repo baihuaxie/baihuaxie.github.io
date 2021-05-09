@@ -317,6 +317,20 @@ $$
 
 
 
+#### Attention
+
+Attention mechanism has been at the core of state-of-the-art language models such as GPT<sup>36</sup>, BERT<sup>37</sup>,  XLNet<sup>38</sup> etc.. These models are variants of the Transformer<sup>39</sup> architecture, which consists of as building blocks a particular type of attention mechanisms known as self-attention.
+
+Modern attention mechanism is first proposed by Bahdanau _et al_<sup>35</sup> in the context of language modeling. In general, an attention module operates on a tuple of three input tensors: query $$Q$$, key $$K$$ and value $$V$$. 
+
+
+
+Since then, various types of attention modules have been developed. 
+
+##### Multi-Head Self-Attention
+
+
+
 
 
 #### Bibliography
@@ -362,3 +376,6 @@ $$
 28. Dmitry Ulyanov et al, "[Instance Normalization: The Missing Ingredient for Fast Stylization](https://arxiv.org/abs/1607.08022)", Arxiv 2017
 29. Yuxin Wu & Kaiming He, "[Group Normalization](https://arxiv.org/abs/1803.08494)", EECV 2018
 30. Tim Salimans et al, "[Weight Normalization: A Simple Reparameterization to Accelerate Training of Deep Neural Networks](https://papers.nips.cc/paper/6114-weight-normalization-a-simple-reparameterization-to-accelerate-training-of-deep-neural-networks.pdf)", NeurIPS 2016
+35. Alec Radford et al, ["Language Models are Unsupervised Multitask Learners"](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf), OpenAI 2019
+36. Jacob Devlin et al, ["BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding"](https://arxiv.org/abs/1810.04805), NAACL-HLT 2019
+37. Zhilin Yang et al, ["XLNet: Generalized Autoregressive Pretraining for Language Understanding"](https://arxiv.org/abs/1906.08237), NeurIPS 2019

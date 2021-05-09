@@ -97,6 +97,7 @@ At a glance, this formulation goes against the fundamental ideas behind represen
 In the context of a neural network, following Lee et al, if we let the pre-nonlinearity activations be denoted as $$f^{(h)}(x)$$ and the post-nonlinearity activations be denoted as $$g^{(h)}(x)$$ for each layer (note that this views one layer in the network as nonlinearity first followed by affine transformation); here $$x$$ emphasizes that the activations are _conditioned_ on an input sample $$x$$. Lee et al conjectured that, in the limit of $$d_h\to\infty$$, due to the Central Limit Theorem and the assumption that $$x$$ are i.i.d. samples, the activations at each layer should approximate a random variable that follows a Gaussian distribution with centered mean (=0). What's really interesting is their next hypothesis: if we treat the activations conditioned on different input samples as different random variables, then any subset of $$\{f^{(h)}(x_{\alpha=1}),...,f^{(h)}(x_{\alpha=k})\}$$ would follow a centered _multivariate_ Gaussian distribution; this is exactly the definition of a Gaussian Process, i.e., we can model the activations in the neural network by $$f^{(h)}(x)\sim\text{GP}(0,\Sigma^{(h)})$$. Just like NTK, this is another method to study the theoretical behaviors of deep neural networks (under infinite width limit) in _closed-form_.
 
 To calculate the covariance matrix, we need to only look at any two samples from the training set and evaluate $$\Sigma^{(h)}(x,x')$$. Note that the $$x$$ here only means the calculations are _conditioned_ on these inputs; the actual random variables of which the covariance is evaluated are of course $$f^{(h)}(x)$$ and $$f^{(h)}(x')$$. Using the basic property that $$\text{Var}(X,Y)=\mathbb{E}[XY]-\mathbb{E}[X]\mathbb{E}[Y]$$ and the assumption that both random variables are centered, we obtain:
+
 $$
 \begin{split}
 \Sigma^{(h)}(x,x')&=\mathbb{E}[f^{(h)}(x)f^{(h)}(x')]\\
@@ -104,6 +105,7 @@ $$
 &=c_\phi\mathbb{E}_{f^{(h-1)}\sim\text{GP}(0,\Sigma^{(h-1)})}[\sigma(f^{(h-1)}(x))\sigma(f^{(h-1)}(x'))]
 \end{split}
 $$
+
 Here we have treated each layer as consisting of a non-linearity followed by an affine transformation; for details check Lee et al Eqn. (4). $$c_\phi$$ is a constant, in their paper it is derived to be the standard deviation of the layer's weight matrix, but in Arora's paper the definition seems to be different; here I just take it to be a general value since it's not important for this discussion. $$\sigma(\cdot)$$ is the nonlinearity. The critical part in the final expression is the expectation; it is taken over the distribution of the previous layer's output (which is the input to current layer), which we know to be a centered GP with covariance $$\Sigma^{(h-1)}$$. This thus forms a recursive structure; we can now calculate the covariance matrix for any two input samples $$x$$ and $$x'$$ layer-by-layer iteratively as follows:
 
 1. Initialize $$\Sigma^{(0)}(x,x')$$; there are several initialization schemes discussed in relevant papers, e.g., just zero, or take dot-product between inputs $$x^Tx'$$;
@@ -187,23 +189,29 @@ $$
 $$
 
 In evaluating the first term on the R.H.S., the authors made a very strange connection from dot product to expectation. As in their eqn. (16) in section D, essentially they casually equated the dot-product and the covariance of the post-activations $$g(x), g(x')$$, so they have:
+
 $$
 <g^{(h-1)}(x),g^{(h-1)}(x')>=\mathbb{E}[g^{(h-1)}(x)g^{(h-1)}]=\mathbb{E}[f^{(h)}(x)f^{(h)}]=\Sigma^{(h)}(x,x')
 $$
+
 All the equalities above except for the first one have been discussed previously. For the first equality, the only source of reference I could find is that, the authors might be treating the activations $$g^{(h)}$$ as the _vector representation_ of a univariate random variable. To treat the activations as a single random variable seems actually consistent with the GP view introduced previously; there Lee et al treated $$g^{(h)}(x)$$ to be a random variable following a Gaussian distribution, and the activations conditioned on different input samples to be different random variables, thus together they form a _random vector_ that follows a _multivariate_ Gaussian distribution. However Lee et al never used dot-products on these random variables.
 
 There exists a curious link between probability theories (about random variables) and linear algebra (about vectors and matrices): a vector can also be viewed as a form of representation for a random variable. This seems odd at first, but in essence random variables are really neither random nor themselves variables. In fact, they are really _measurable_ functions defined on a vector space which maps from an event space to a real-valued probability space. I won't go into details in this post as this concerns the measure theory; but a simple analogy is that we can treat the index $$i$$ of a vector of dimension $$n$$ to be having a probability of "occurrence" equal to $$1/n$$. In practice this view of random variables give rise to certain interesting geometrical interpretations of probability, such as the expectation being a projection onto the basis vector, etc.; but another useful result with this view is that it allows us to use the tools in linear algebra along with probability.
 
 If the above thinking is correct, then we have a method to iteratively evaluate the dot-product on activations. Now we need to evaluate the dot-product on $$b^{(h)}$$. The procedure is relatively straight-forward; one can refer to section D for more details. The authors invoked the same vector interpretation here as well; they arrived at:
+
 $$
 <b^{(h)}(x), b^{(h)}(x')>=\prod_{h'=h}^L\Sigma^{h'}(x,x')
 $$
+
 (missing a derivative symbol here). Here the derivation of the covariance matrix means that when we take the expectation in the iterative GP formula, we are computing $$c_\phi\mathbb{E}_{f^{(h-1)}\sim\text{GP}(0,\Sigma^{(h-1)})}[\sigma(f^{(h-1)}(x))\sigma(f^{(h-1)}(x'))]$$ instead.
 
 Finally, we have the expression for the NTK kernel values:
+
 $$
 <\frac{\partial f(\theta;x)}{\partial\theta},\frac{\partial f(\theta;x')}{\partial\theta}>=\sum_{h=1}^{L}(\Sigma^{h}(x,x')\prod_{h'=h}^L\Sigma^{h'}(x,x'))
 $$
+
 with the covariances at each layer evaluated by the same GP iterative procedure.
 
 

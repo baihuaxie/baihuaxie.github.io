@@ -14,11 +14,12 @@ Since proposed by Jacob el al<sup>1</sup> in 2018, _neural tangent kernels_ have
 First let's get a few concepts out of the way:
 
 **Kernel Regression.** Let $$f(\theta;x)\in\mathbb{R}$$ denote the output of a neural network given weights $$\theta$$ and an input sample $$x$$. Let $$X$$ and $$X^*$$ represent the set of training and testing dataset, respectively. A regression or classification problem would ask the network to predict $$f(\theta; x^*)$$ given the training samples $$\{X,y\}$$. Kernel regression solves this problem by giving a closed-form expression for the prediction as the following:
+
 $$
 f(\theta;x^*)=\sum_j^N\mathcal{k}(x^*,x_j)y_j
 $$
 
-Here, $$\{x_j,y_j\}\in\{X,y\}$$ are the $N$ training samples; $$\mathcal{k}(\cdot,\cdot)$$ is a kernel function between two samples that produces a similarity score. In essence, kernel regression produces a prediction for an unseen sample in the test set as a weighted combination of the labels in the training set.
+Here, $$\{x_j,y_j\}\in\{X,y\}$$ are the $$N$$ training samples; $$\mathcal{k}(\cdot,\cdot)$$ is a kernel function between two samples that produces a similarity score. In essence, kernel regression produces a prediction for an unseen sample in the test set as a weighted combination of the labels in the training set.
 
 **Neural Tangent Kernel (NTK).** Jacob et al<sup>1</sup> proposed specific forms of the kernel functions $$\mathcal{k}(\cdot,\cdot)$$ for different deep neural networks, such that the kernel regression solution with these kernels can be shown to be (approximately) equivalent to the results produced by these neural networks trained using gradient descent. Specifically, for weakly-trained networks, i.e., networks with fixed weights except for the top layer trained with $$\ell_2$$ loss, the following kernel function was derived:
 $$
@@ -97,50 +98,68 @@ I'll discuss the insights and limitations derived from the NTK formulation in a 
 ##### Neural Tangent Kernels for Fully Connected Networks
 
 For NTK, we need to evaluate the dot product term:
+
 $$
 <\frac{\partial f(\theta;x)}{\partial\theta},\frac{\partial f(\theta;x')}{\partial\theta}>
 $$
+
 $$x,x'$$ are any two samples in the training set; for simplicity I have dropped the index $$t$$. Define the fully-connected network with $$L$$ layers as follows:
+
 $$
 \begin{split}
 f^{(h)}(x)&=W^{(h)}g^{(h-1)}(x)\\
 g^{(h-1)}&=\sigma(f^{(h-1)(x)})
 \end{split}
 $$
+
 Here $$h=1,...,L$$ is the layer numbers, $$\sigma(\cdot)$$ is the activation function (taken as ReLU in this paper). I have dropped the scaling terms before the activation function and merge the bias into weights for simplicity. Now the weights are really $$\theta=\{W^{1},W^{2},...\}$$. Since the dot-product is just a sum, we can re-write it as:
+
 $$
 <\frac{\partial f(\theta;x)}{\partial\theta},\frac{\partial f(\theta;x')}{\partial\theta}>=\sum_{h=1}^{L}<\frac{\partial f(\theta;x)}{\partial W^{(h)}},\frac{\partial f(\theta;x')}{\partial W^{(h)}}>
 $$
+
 We need to clarify something first. Although on the R.H.S., the terms in the dot-product would be a matrix $$\in\mathbb{R}^{d_{h}\times d_{h-1}}$$, we actually treat it as a "flattened" matrix when performing the dot-product (i.e., in code we would write something like ```x.view(-1)```). The result of the dot-product would be a scalar value. This is because in the derivation of NTK, we treat all the weights in the network $$\theta$$ as a vector; now in multi-layered network the weights are matrices or tensors at each layer for practical purposes, but for theoretical purposes it is more convenient to view them as flattened. 
 
 Now use the chain rule to expand the term on the R.H.S. from the output to layer $$h$$:
+
 $$
 \frac{\partial f(\theta;x)}{\partial W^{(h)}}=\frac{\partial f^{(h+1)}(x)}{\partial f^{(h)}(x)}\cdot\cdot\cdot\frac{\partial f^{(L)}(x)}{\partial f^{(L-1)}(x)}\frac{\partial f(\theta;x)}{\partial f^{(L)}(x)}\frac{\partial f^{(h)}(x)}{\partial W^{(h)}}\in\mathbb{R}^{d_h\times d_{h-1}}
 $$
+
 (I have re-ordered the terms to reflect the matrix multiplication orders properly; the derivatives assume denominator layout and vectors assume column-major; see below). Use the definition of the fully-connected layers:
+
 $$
 \frac{\partial f^{(h+1)}(x)}{\partial f^{(h)}(x)}=\text{diag}(\sigma(f^{(h)}(x)))(W^{(h+1)})^T
 $$
+
 (there is a missing derivative symbol) Let's check the dimensions here: $$f^{(h+1)}\in\mathbb{R}^{d_{h+1}}$$ and $$f^{(h)}\in\mathbb{R}^{d_{h}}$$ are column vectors; if we consider using the denominator layout, the L.H.S. should be a matrix $$\in\mathbb{R}^{d_{h}\times d_{h+1}}$$; on the R.H.S., the diagonal matrix is $$\in\mathbb{R}^{d_{h}\times d_{h}}$$ and the transposed weight matrix is $$\in\mathbb{R}^{d_{h}\times d_{h+1}}$$; the dimensions match under denominator layout.
 
 The last term would be evaluated as:
+
 $$
 \frac{\partial f^{(h)}(x)}{\partial W^{(h)}}=I\otimes g^{(h-1)}(x)^T=g^{(h-1)}(x)^T
 $$
+
 The dimensions also match: L.H.S. is a vector-by-matrix derivative, the complete form would require using the tensor product $$\otimes$$ with the identity matrix; but since it is actually a linear layer, it can be shown that the result would be reduced to a row vector $$\in\mathbb{R}^{1\times d_{h-1}}$$; so we denote the R.H.S. with transpose to make it a row vector.
 
 If we define recursively for each layer $$h$$ such that:
+
 $$
 b^{(h)}(x)=\text{diag}(\sigma(f^{(h)}(x)))(W^{(h+1)})^T\cdot b^{(h+1)}\in\mathbb{R}^{d_{h}\times 1}\hspace{10pt}\text{for}\hspace{2pt}h=h,h+1,...,L
 $$
+
 we can write the final expression in a compact form as:
+
 $$
 \frac{\partial f(\theta;x)}{\partial W^{(h)}}=b^{(h)}(x)\cdot g^{(h-1)}(x)^T
 $$
+
 The $$\cdot$$ represents matrix multiplication. If we take away the transpose on $$g$$, then this is an outer product. (Need to check this transformation later) The NTK entry can be re-written as:
+
 $$
 <\frac{\partial f(\theta;x)}{\partial W^{(h)}},\frac{\partial f(\theta;x')}{\partial W^{(h)}}>=<g^{(h-1)}(x),g^{(h-1)}(x')>\cdot<b^{(h)}(x), b^{(h)}(x')>\in\mathbb{R}
 $$
+
 
 
 

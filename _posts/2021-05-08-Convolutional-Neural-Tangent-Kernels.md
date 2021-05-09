@@ -109,8 +109,8 @@ $$
 Here we have treated each layer as consisting of a non-linearity followed by an affine transformation; for details check Lee et al Eqn. (4). $$c_\phi$$ is a constant, in their paper it is derived to be the standard deviation of the layer's weight matrix, but in Arora's paper the definition seems to be different; here I just take it to be a general value since it's not important for this discussion. $$\sigma(\cdot)$$ is the nonlinearity. The critical part in the final expression is the expectation; it is taken over the distribution of the previous layer's output (which is the input to current layer), which we know to be a centered GP with covariance $$\Sigma^{(h-1)}$$. This thus forms a recursive structure; we can now calculate the covariance matrix for any two input samples $$x$$ and $$x'$$ layer-by-layer iteratively as follows:
 
 1. Initialize $$\Sigma^{(0)}(x,x')$$; there are several initialization schemes discussed in relevant papers, e.g., just zero, or take dot-product between inputs $$x^Tx'$$;
-2. For each layer $$h$$ staring from 0, compute the covariance matrix that governs the GP at this layer; for any two input samples the covariance matrix is 2x2 and symmetrical (necessarily?), with entries: $$\Sigma^{(h)}(x,x')$$,$$\Sigma^{(h)}(x,x)$$ and $$\Sigma^{(h)}(x',x')$$; let's denote this matrix as $$\Delta$$;
-3. Draw two random variables $$u,v\sim N(0,\Delta)$$ and compute the expectation on the last line of the equation above; In practice expectation can be approximated by tricks like Monte-Carlo sampling; in Arora paper the authors proposed a smart trick to compute the expectation more efficiently and accurately;
+2. For each layer $$h$$ staring from 0, compute the covariance matrix that governs the GP at this layer; for any two input samples the covariance matrix is 2x2 and symmetrical (necessarily?), with entries: $$\Sigma^{(h)}(x,x')$$,$$\Sigma^{(h)}(x,x)$$ and $$\Sigma^{(h)}(x',x')$$; let's denote this matrix as $$\Lambda$$;
+3. Draw two random variables $$u,v\sim N(0,\Lambda)$$ and compute the expectation on the last line of the equation above; In practice expectation can be approximated by tricks like Monte-Carlo sampling; in Arora paper the authors proposed a smart trick to compute the expectation more efficiently and accurately;
 4. Repeat 2-3 until $$h=L$$;
 
 In summary, the essence of the GP view of neural networks is an iteratively procedure to build approximations to the network's outputs. The procedure was adapted in the NTK formulation to be used to compute the NTK kernels.
@@ -157,10 +157,10 @@ $$
 (I have re-ordered the terms to reflect the matrix multiplication orders properly; the derivatives assume denominator layout and vectors assume column-major; see below). Use the definition of the fully-connected layers:
 
 $$
-\frac{\partial f^{(h+1)}(x)}{\partial f^{(h)}(x)}=\text{diag}(\sigma(f^{(h)}(x)))(W^{(h+1)})^T
+\frac{\partial f^{(h+1)}(x)}{\partial f^{(h)}(x)}=\text{diag}(\dot{\sigma}(f^{(h)}(x)))(W^{(h+1)})^T
 $$
 
-(there is a missing derivative symbol) Let's check the dimensions here: $$f^{(h+1)}\in\mathbb{R}^{d_{h+1}}$$ and $$f^{(h)}\in\mathbb{R}^{d_{h}}$$ are column vectors; if we consider using the denominator layout, the L.H.S. should be a matrix $$\in\mathbb{R}^{d_{h}\times d_{h+1}}$$; on the R.H.S., the diagonal matrix is $$\in\mathbb{R}^{d_{h}\times d_{h}}$$ and the transposed weight matrix is $$\in\mathbb{R}^{d_{h}\times d_{h+1}}$$; the dimensions match under denominator layout.
+Let's check the dimensions here: $$f^{(h+1)}\in\mathbb{R}^{d_{h+1}}$$ and $$f^{(h)}\in\mathbb{R}^{d_{h}}$$ are column vectors; if we consider using the denominator layout, the L.H.S. should be a matrix $$\in\mathbb{R}^{d_{h}\times d_{h+1}}$$; on the R.H.S., the diagonal matrix is $$\in\mathbb{R}^{d_{h}\times d_{h}}$$ and the transposed weight matrix is $$\in\mathbb{R}^{d_{h}\times d_{h+1}}$$; the dimensions match under denominator layout.
 
 The last term would be evaluated as:
 
@@ -201,15 +201,15 @@ There exists a curious link between probability theories (about random variables
 If the above thinking is correct, then we have a method to iteratively evaluate the dot-product on activations. Now we need to evaluate the dot-product on $$b^{(h)}$$. The procedure is relatively straight-forward; one can refer to section D for more details. The authors invoked the same vector interpretation here as well; they arrived at:
 
 $$
-<b^{(h)}(x), b^{(h)}(x')>=\prod_{h'=h}^L\Sigma^{h'}(x,x')
+<b^{(h)}(x), b^{(h)}(x')>=\prod_{h'=h}^L\dot{\Sigma}^{h'}(x,x')
 $$
 
-(missing a derivative symbol here). Here the derivation of the covariance matrix means that when we take the expectation in the iterative GP formula, we are computing $$c_\phi\mathbb{E}_{f^{(h-1)}\sim\text{GP}(0,\Sigma^{(h-1)})}[\sigma(f^{(h-1)}(x))\sigma(f^{(h-1)}(x'))]$$ instead.
+(missing a derivative symbol here). Here the derivation of the covariance matrix means that when we take the expectation in the iterative GP formula, we are computing $$c_\phi\mathbb{E}_{f^{(h-1)}\sim\text{GP}(0,\Sigma^{(h-1)})}[\dot{\sigma}(f^{(h-1)}(x))\dot{\sigma}(f^{(h-1)}(x'))]$$ instead.
 
 Finally, we have the expression for the NTK kernel values:
 
 $$
-<\frac{\partial f(\theta;x)}{\partial\theta},\frac{\partial f(\theta;x')}{\partial\theta}>=\sum_{h=1}^{L}(\Sigma^{h}(x,x')\prod_{h'=h}^L\Sigma^{h'}(x,x'))
+<\frac{\partial f(\theta;x)}{\partial\theta},\frac{\partial f(\theta;x')}{\partial\theta}>=\sum_{h=1}^{L}(\Sigma^{h}(x,x')\prod_{h'=h}^L\dot{\Sigma}^{h'}(x,x'))
 $$
 
 with the covariances at each layer evaluated by the same GP iterative procedure.

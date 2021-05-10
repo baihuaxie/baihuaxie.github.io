@@ -300,7 +300,7 @@ c_2^2&=\Sigma_{x'x'}\\
 \end{split}
 $$
 
-Note that we have assumed the covariance matrix is symmetrical, which generally should be true; also since we need to take square roots, this means the entries in the covariance matrix must be the result of a non-negative kernel function. With these relatively general assumptions, the authors have been able to reduce the expectation computation into a simple, closed-form evaluation.
+Note that we have assumed the covariance matrix is symmetrical, which generally should be true; also since we need to take square roots, this means the entries in the covariance matrix must be the result of a non-negative kernel function. With these relatively general assumptions, the authors have been able to reduce the expectation computation into a simple, closed-form evaluation. An interesting note: doesn't $$\lambda$$ looks like a correlation?
 
 The following codes are snippets from the [source code](https://github.com/ruosongwang/CNTK) published along with the paper; I added some comments.
 

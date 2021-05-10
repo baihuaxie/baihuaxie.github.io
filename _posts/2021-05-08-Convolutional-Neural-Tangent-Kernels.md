@@ -232,6 +232,7 @@ Their iterative CNTK formula to produce the output estimate at the final layer i
 4. For each layer $$h=1,2,...,L$$ and for each patch $$\mathcal{D}_{ij,i'j'}\in[P]\times[Q]\times[P]\times[Q]$$ at that layer, compute the covariance matrix $$\Lambda^{(h)}(x,x')_{ij,i'j'}\in\mathbb{R}^{2\times2}$$ used in GP, with the kernel values from last layer $$\Sigma^{(h-1)}(x,x')_{ij,i'j'}$$, $$\Sigma^{(h-1)}(x,x)_{ij,i'j'}$$, and $$\Sigma^{(h-1)}(x',x')_{ij,i'j'}$$, same as before;
 
 5. Assume that the pre-nonlinearity activations follow a centered GP, use the GP formula to update $$K^{(h)}_{ij,i'j'}$$ and its derivative  $$\dot{K}^{(h)}_{ij,i'j'}$$ by expectation:
+
    $$
    \begin{split}
    K^{(h)}(x,x')_{ij,i'j'}&\gets \frac{c_\phi}{q^2}\cdot\sum_{u,v\sim N(0,\Lambda^{(h)}(x,x')_{ij,i'j'})}
@@ -240,12 +241,15 @@ Their iterative CNTK formula to produce the output estimate at the final layer i
    [\dot{\sigma}(u)\dot{\sigma}(v)]\in\mathbb{R}^{q\times q\times q\times q}
    \end{split}
    $$
+
    Note that the quantities are no longer defined on each filter channel (the subscript $$_\alpha$$ is removed). The reason is not explicitly explained in the paper, but one would assume that, since the covariance matrix is defined over all channels, the expectation should produce a quantity that is equivalent across channels as well.
 
 6. Compute the CNTK entry for each patch at layer $$h$$ as:
+
    $$
    \Theta^{(h)}(x,x')_{ij,i'j'}=\text{tr}([\dot{K}^{(h)}(x,x')_{ij,i'j'}\odot\Theta^{(h-1)}(x,x')_{ij,i'j'}]+K^{(h)}(x,x')_{ij,i'j'})\in\mathbb{R}
    $$
+
    here $$\odot$$ denotes element-wise multiplication since $$\Theta$$ is a scalar value;
 
 7. Update $$\Sigma^{(h)}(x,x')_{ij,i'j'}=\text{tr}(K^{(h)}(x,x')_{ij,i'j'})\in\mathbb{R}$$;
@@ -257,21 +261,26 @@ Their iterative CNTK formula to produce the output estimate at the final layer i
 10. Compute the final CNTK value;
 
     for vanilla CNN's we take the trace of the diagonal elements: (Q: how do we take trace over tensors?)
+
     $$
     H(x,x')=\text{tr}(\Theta^{(L)}(x,x'))
     $$
+
     for CNN's with global average pooling, the authors apply a similar "pooling" operation over the $$\Theta$$ matrix by taking the global average:
+    
     $$
     H(x,x')=\frac{1}{P^2Q^2}\sum_{ij,i'j'}\Theta^{(L)}(x,x')_{ij,i'j'}
     $$
 
 The computational challenge of the above procedure is at step 5, when the expectation needs to be approximated. Instead of traditional techniques like MC sampling, the authors came up with a pretty creative solution. They observed that the following closed-form _exact_ expectations are valid:
+
 $$
 \begin{split}
 \sum_{u,v\sim N(0,D\Lambda D)}[\sigma(u)\sigma(v)]&=\frac{\lambda(\pi-\arccos(\lambda))+\sqrt{1-\lambda^2}}{2\pi}\cdot c_1c_2\\
 \sum_{u,v\sim N(0,D\Lambda D)}[\dot{\sigma}(u)\dot{\sigma}(v)]&=\frac{\pi-\arccos(\lambda)}{2\pi}
 \end{split}
 $$
+
 if the covariance matrix $$A=D\Lambda D$$ such that $$\Lambda=\begin{pmatrix}
 1 & \lambda \\
 \lambda & 1
@@ -282,6 +291,7 @@ c_1 & 0 \\
 \Sigma_{xx} & \Sigma_{xx'} \\
 \Sigma_{x'x} & \Sigma_{x'x'}
 \end{pmatrix}$$; then we can obtain the following calculations:
+
 $$
 \begin{split}
 c_1^2&=\Sigma_{xx}\\
@@ -289,6 +299,7 @@ c_2^2&=\Sigma_{x'x'}\\
 \lambda&=\frac{\Sigma_{xx'}}{c_1c_2}
 \end{split}
 $$
+
 Note that we have assumed the covariance matrix is symmetrical, which generally should be true; also since we need to take square roots, this means the entries in the covariance matrix must be the result of a non-negative kernel function. With these relatively general assumptions, the authors have been able to reduce the expectation computation into a simple, closed-form evaluation.
 
 The following codes are snippets from the [source code](https://github.com/ruosongwang/CNTK) published along with the paper; I added some comments.
@@ -314,6 +325,8 @@ void trans(float s[32][32][32][32], float t[32][32][32][32], const float l[32][3
 	s[x1][y1][x2][y2] = BS;
 }
 ```
+
+
 
 In the CUDA kernel, `s` and `t` stores the current values for $$K^{(h)}(x,x')_{ij,i'j'}$$ and $$\Theta^{(h)}(x,x')_{ij,i'j'}$$; notice their tensor shapes are both `32x32x32x32`, because the experiments are conducted on CIFAR-10 dataset with image size = 32x32. The expectations are computed using the fast formula above. After this kernel, we also need to compute the trace on `s` to obtain the current values for $$\Sigma^{(h)}(x,x')$$; this is done by the following customized convolution kernel:
 
@@ -353,7 +366,10 @@ void conv3(const float s[32][32][32][32], float t[32][32][32][32])
 }
 ```
 
-However it is not very clear to me how this kernel, which looks just like a normal 3x3 conv filter, performs the trace operation over $$K^{(h)}(x,x')_{ij,i'j'}$$ and $$\Theta^{(h)}(x,x')_{ij,i'j'}$$. The authors call these two kernels in the iterative algorithm to compute the CNTK values $$H(x,x')$$
+
+
+However it is not very clear to me how this kernel, which looks just like a normal 3x3 conv filter, performs the trace operation over $$K^{(h)}(x,x')_{ij,i'j'}$$ and $$\Theta^{(h)}(x,x')_{ij,i'j'}$$. The authors call these two kernels in the iterative algorithm to compute the CNTK values $$H(x,x')$$:
+
 
 ```python
 # computes H(x,z)
@@ -387,12 +403,17 @@ def xz(x, z, Lx, Lz, iLx, iLz):
 	return cp.mean(T) if gap else cp.trace(T.reshape(1024, 1024))
 ```
 
+
+
 After constructing the CNTK matrix, the kernel regression problem is solved by:
+
 
 ```python
 # H[N_train+N_test, N_train+N_test]; so H[N_train:, :N_train] = H(x_test, x_train);
 u = H[N_train:, :N_train].dot(scipy.linalg.solve(H[:N_train, :N_train], Y_train))
 ```
+
+
 
 ##### Summary
 

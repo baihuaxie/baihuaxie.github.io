@@ -5,15 +5,14 @@ title: Convolutional Neural Tangent Kernels
 date: 2021-05-08
 author: Baihua Xie
 tags: neural-tangent-kernels theory
-mins: 20-min
+mins: 30-min
 ---
 
-Since proposed by Jacob el al<sup>1</sup> in 2018, _neural tangent kernels_ have become an important tool in recent literature<sup>2,3,4</sup> that study the theoretical behaviors of deep neural networks. In this post I'll discuss one of the earlier works on convolutional neural tangent kernels, or CNTK, by Arora et al^5^ in NeurIPS 2019. In this paper, the authors derived an efficient algorithm that computes a CNTK kernel regression problem which the authors claim could estimate the training dynamics of ReLU CNN's trained with gradient descent. The CNTK algorithm achieves 77.4% accuracy on the CIFAR-10 dataset. Although a poor performance compared to well-trained deep CNN's, this is nonetheless an impressive +10% higher than previous state-of-the-art for a purely kernel-based method. Since the main significance of NTKs lies with them being a powerful tool to study the dynamics of training deep neural networks, one could argue that the absolute accuracy numbers are of less concern. In this post I'll focus on how the CNTK works exactly, as well as what kind of assumptions and limitations it might have for studying mainstream deep neural networks.
+Since proposed by Jacob el al<sup>1</sup> in 2018, _neural tangent kernels_ have become an important tool in recent literature<sup>2,3,4</sup> that study the theoretical behaviors of deep neural networks. In this post I'll discuss one of the earlier works on convolutional neural tangent kernels, or CNTK, by Arora et al<sup>5</sup> in NeurIPS 2019. In this paper, the authors derived an efficient algorithm that computes a CNTK kernel regression problem which the authors claim could estimate the training dynamics of ReLU CNN's trained with gradient descent. The CNTK algorithm achieves 77.4% accuracy on the CIFAR-10 dataset. Although a poor performance compared to well-trained deep CNN's, this is nonetheless an impressive +10% higher than previous state-of-the-art for a purely kernel-based method. Since the main significance of NTKs lies with them being a powerful tool to study the dynamics of training deep neural networks, one could argue that the absolute accuracy numbers are of less concern. In this post I'll focus on how the CNTK works exactly, as well as what kind of assumptions and limitations it might have for studying mainstream deep neural networks.
 
-First let's get a few concepts out of the way:
+First let's get a few preliminaries out of the way:
 
 **Kernel Regression.** Let $$f(\theta;x)\in\mathbb{R}$$ denote the output of a neural network given weights $$\theta$$ and an input sample $$x$$. Let $$X$$ and $$X^*$$ represent the set of training and testing dataset, respectively. A regression or classification problem would ask the network to predict $$f(\theta; x^*)$$ given the training samples $$\{X,y\}$$. Kernel regression solves this problem by giving a closed-form expression for the prediction as the following:
-
 $$
 f(\theta;x^*)=\sum_j^N\mathcal{k}(x^*,x_j)y_j
 $$
@@ -92,11 +91,11 @@ At a glance, this formulation goes against the fundamental ideas behind represen
 2. For every new test sample we need to re-evaluate the solution on the entire training set; this can have huge computational complexity implications, as the training set in practice is usually very large;
 3. Can this solution overfit the training set to begin with? i.e., if I pass a training sample to the formula, is it guaranteed to output the ground truth?
 
-**Gaussian process (GP) in neural networks.** NTK is closely related to the concurrently developed GP view of infinitely wide neural networks, pioneered by Lee et al<sup>5</sup> in 2018. GP is a non-parametric method to model probability distribution of _functions_ instead of _variables_. In classic terms, we say that a function $$f\sim\text{GP}(\mu,\Sigma)$$ if for any subset of the function's values conditioned on its inputs, $$\{f(x_1),f(x_2),...,f(x_k\}$$, the joint probability distribution of this subset follows a Gaussian distribution of $$\sim N(\mu,\Sigma)$$. In practice usually the GP have zero mean, referred to as _centered GP_; GP is thus fully characterize by its covariance matrix (which can be the covariance or any kernel function in practice). Since the covariance is completely determined given the training set, GP is a non-parametric model.
+**Gaussian process (GP) in neural networks.** NTK is closely related to the concurrently developed GP view of infinitely wide neural networks, pioneered by Lee et al<sup>6</sup> in 2018. GP is a non-parametric method to model probability distribution of _functions_ instead of _variables_. In classic terms, we say that a function $$f\sim\text{GP}(\mu,\Sigma)$$ if for any subset of the function's values conditioned on its inputs, $$\{f(x_1),f(x_2),...,f(x_k\}$$, the joint probability distribution of this subset follows a Gaussian distribution of $$\sim N(\mu,\Sigma)$$. In practice usually the GP's have zero mean, referred to as _centered GP_; GP is thus fully characterize by its covariance matrix (which can be the covariance or any kernel function in practice). Since the covariance is completely determined given the training set, GP is a non-parametric model.
 
 In the context of a neural network, following Lee et al, if we let the pre-nonlinearity activations be denoted as $$f^{(h)}(x)$$ and the post-nonlinearity activations be denoted as $$g^{(h)}(x)$$ for each layer (note that this views one layer in the network as nonlinearity first followed by affine transformation); here $$x$$ emphasizes that the activations are _conditioned_ on an input sample $$x$$. Lee et al conjectured that, in the limit of $$d_h\to\infty$$, due to the Central Limit Theorem and the assumption that $$x$$ are i.i.d. samples, the activations at each layer should approximate a random variable that follows a Gaussian distribution with centered mean (=0). What's really interesting is their next hypothesis: if we treat the activations conditioned on different input samples as different random variables, then any subset of $$\{f^{(h)}(x_{\alpha=1}),...,f^{(h)}(x_{\alpha=k})\}$$ would follow a centered _multivariate_ Gaussian distribution; this is exactly the definition of a Gaussian Process, i.e., we can model the activations in the neural network by $$f^{(h)}(x)\sim\text{GP}(0,\Sigma^{(h)})$$. Just like NTK, this is another method to study the theoretical behaviors of deep neural networks (under infinite width limit) in _closed-form_.
 
-To calculate the covariance matrix, we need to only look at any two samples from the training set and evaluate $$\Sigma^{(h)}(x,x')$$. Note that the $$x$$ here only means the calculations are _conditioned_ on these inputs; the actual random variables of which the covariance is evaluated are of course $$f^{(h)}(x)$$ and $$f^{(h)}(x')$$. Using the basic property that $$\text{Var}(X,Y)=\mathbb{E}[XY]-\mathbb{E}[X]\mathbb{E}[Y]$$ and the assumption that both random variables are centered, we obtain:
+To calculate the covariance matrix, we need to only look at any two samples from the training set and evaluate $$\Sigma^{(h)}(x,x')$$. Note that the $$x$$ here only means that the calculations are _conditioned_ on these inputs; the actual random variables of which the covariance is evaluated are of course $$f^{(h)}(x)$$ and $$f^{(h)}(x')$$. Using the basic property that $$\text{Var}(X,Y)=\mathbb{E}[XY]-\mathbb{E}[X]\mathbb{E}[Y]$$ and the assumption that both random variables are centered, we obtain:
 
 $$
 \begin{split}
@@ -113,7 +112,9 @@ Here we have treated each layer as consisting of a non-linearity followed by an 
 3. Draw two random variables $$u,v\sim N(0,\Lambda)$$ and compute the expectation on the last line of the equation above; In practice expectation can be approximated by tricks like Monte-Carlo sampling; in Arora paper the authors proposed a smart trick to compute the expectation more efficiently and accurately;
 4. Repeat 2-3 until $$h=L$$;
 
-In summary, the essence of the GP view of neural networks is an iteratively procedure to build approximations to the network's outputs. The procedure was adapted in the NTK formulation to be used to compute the NTK kernels.
+For step 2., one question is not very clear to me from Lee et al: the expectation should in fact be taken over the joint multivariate Gaussian characterized by the covariance matrix conditioned on _all_ input samples; however here we are only counting the two input samples for the covariance (so the matrix is $$2\times2$$ instead of $$N\times N$$, where $$N$$ is number of samples), ignoring other samples; is there a particular reason for this simplification?
+
+In summary, the essence of the GP view of neural networks is an iteratively procedure to build approximations to the network's outputs. This procedure was adapted in the NTK formulation to be used to compute the NTK kernels.
 
 We have seen three implications that follows directly from the assumption that the network's width goes to infinity:
 
@@ -204,21 +205,208 @@ $$
 <b^{(h)}(x), b^{(h)}(x')>=\prod_{h'=h}^L\dot{\Sigma}^{h'}(x,x')
 $$
 
-(missing a derivative symbol here). Here the derivation of the covariance matrix means that when we take the expectation in the iterative GP formula, we are computing $$c_\phi\mathbb{E}_{f^{(h-1)}\sim\text{GP}(0,\Sigma^{(h-1)})}[\dot{\sigma}(f^{(h-1)}(x))\dot{\sigma}(f^{(h-1)}(x'))]$$ instead.
+To arrive at this simple form, the authors had to invoke a trick to decouple $$W^{(h)}$$ and $$b^{(h)}(x)$$, which are interdependent. It is assumed that we can replace $$W^{(h)}$$ with a new sample $$\tilde{W}^{(h)}$$ without changing its limit; when made rigorous, this can be a useful trick in general. Here the derivation of the covariance matrix means that when we take the expectation in the iterative GP formula, we are computing $$c_\phi\mathbb{E}_{f^{(h-1)}\sim\text{GP}(0,\Sigma^{(h-1)})}[\dot{\sigma}(f^{(h-1)}(x))\dot{\sigma}(f^{(h-1)}(x'))]$$ instead.
 
-Finally, we have the expression for the NTK kernel values:
+Finally, we have the expression for the NTK kernel entries:
 
 $$
-<\frac{\partial f(\theta;x)}{\partial\theta},\frac{\partial f(\theta;x')}{\partial\theta}>=\sum_{h=1}^{L}(\Sigma^{h}(x,x')\prod_{h'=h}^L\dot{\Sigma}^{h'}(x,x'))
+H(x,x')=<\frac{\partial f(\theta;x)}{\partial\theta},\frac{\partial f(\theta;x')}{\partial\theta}>=\sum_{h=1}^{L}(\Sigma^{h}(x,x')\prod_{h'=h}^L\dot{\Sigma}^{h'}(x,x'))=\Theta^{(L)}(x,x')
 $$
 
 with the covariances at each layer evaluated by the same GP iterative procedure.
+
+##### Convolutional Neural Tangent Kernels
+
+Arora et al made two primary contributions in their paper. Firstly, they derived a closed-form expression of NTK for ReLU-activated CNN's with global average pooling, termed CNTK; this expression is also based on the covariance matrices from the GP view, and is evaluated iteratively layer-by-layer in a similar fashion to NTK for fully connected networks discussed above. Secondly, seeing the computational cost of estimating the expectation in the covariance iterations, the authors provided a customized CUDA kernel to efficiently carry out an approximate version of the computation through a neat matrix trick.
+
+Their derivation for CNTK formula is surprising complicated, given that one would assume that CNN's are just weight-shared fully connected networks. I'm not entirely sure of the theoretical significance of their derivation, so I'll skip it in this post and discuss its results directly. For CNN's, we define $$x,x'$$ to be two input images with dimensions $$\in\mathbb{R}^{P\times Q}$$. We define all computations about covariances on a single patch $$\mathcal{D}_{ij,i'j'}\in[P]\times[Q]\times[P]\times{Q}$$ that equals in size the receptive field $$q\times q$$ of the convolutional kernels (so we'll subscript all the quantities with $$_{ij,i'j'}$$). For each layer $$h$$ in the network, assume the the filter channels are $$\alpha=1,2,...,C^{(h)}$$. We define a quantity $$K^{(h)}_{(\alpha)}(x,x')_{ij,i'j'}\in\mathbb{R}^{q\times q\times q\times q}$$ for each patch at each channel in layer $$h$$, as well as a quantity $$\Sigma^{(h)}(x,x')_{ij,i'j'}\in\mathbb{R}$$ for each patch at all channels of the same layer; these quantities serve the same purpose as the covariance matrices in the NTK formulation and are iteratively updated.
+
+Their iterative CNTK formula to produce the output estimate at the final layer is as follows:
+
+1. Initialize the NTK entries at the input $$\Theta^{(0)}(x,x')\in\mathbb{R}$$; for vanilla CNN's the authors opted to initialize as $$\Sigma^{0}(x,x')=x^Tx'$$, same as before, while for CNN's with global average pooling it is initialized as simply $$0$$; I'm not sure of the theoretical thinking behind this difference;
+
+2. Initialize $$K^{(0)}_{(\alpha)}(x,x')_{ij,i'j'}=x_{(\alpha)ij,i'j'}\otimes x'_{(\alpha)ij,i'j'}\in\mathbb{R}^{q\times q\times q\times q}$$; here $$\otimes$$ is tensor product or out;
+
+3. Initialize $$\Sigma^{(0)}(x,x')_{ij,i'j'}=\sum_{\alpha=1}^{C^{(0)}}\text{tr}(K^{(0)}_{(\alpha)}(x,x')_{ij,i'j'})\in\mathbb{R}$$; this is a scalar value; $$\text{tr}(\cdot)$$ is the trace operator;
+
+4. For each layer $$h=1,2,...,L$$ and for each patch $$\mathcal{D}_{ij,i'j'}\in[P]\times[Q]\times[P]\times[Q]$$ at that layer, compute the covariance matrix $$\Lambda^{(h)}(x,x')_{ij,i'j'}\in\mathbb{R}^{2\times2}$$ used in GP, with the kernel values from last layer $$\Sigma^{(h-1)}(x,x')_{ij,i'j'}$$, $$\Sigma^{(h-1)}(x,x)_{ij,i'j'}$$, and $$\Sigma^{(h-1)}(x',x')_{ij,i'j'}$$, same as before;
+
+5. Assume that the pre-nonlinearity activations follow a centered GP, use the GP formula to update $$K^{(h)}_{ij,i'j'}$$ and its derivative  $$\dot{K}^{(h)}_{ij,i'j'}$$ by expectation:
+   $$
+   \begin{split}
+   K^{(h)}(x,x')_{ij,i'j'}&\gets \frac{c_\phi}{q^2}\cdot\sum_{u,v\sim N(0,\Lambda^{(h)}(x,x')_{ij,i'j'})}
+   [\sigma(u)\sigma(v)]\in\mathbb{R}^{q\times q\times q\times q}\\
+   \dot{K}^{(h)}(x,x')_{ij,i'j'}&\gets \frac{c_\phi}{q^2}\cdot\sum_{u,v\sim N(0,\Lambda^{(h)}(x,x')_{ij,i'j'})}
+   [\dot{\sigma}(u)\dot{\sigma}(v)]\in\mathbb{R}^{q\times q\times q\times q}
+   \end{split}
+   $$
+   Note that the quantities are no longer defined on each filter channel (the subscript $$_\alpha$$ is removed). The reason is not explicitly explained in the paper, but one would assume that, since the covariance matrix is defined over all channels, the expectation should produce a quantity that is equivalent across channels as well.
+
+6. Compute the CNTK entry for each patch at layer $$h$$ as:
+   $$
+   \Theta^{(h)}(x,x')_{ij,i'j'}=\text{tr}([\dot{K}^{(h)}(x,x')_{ij,i'j'}\odot\Theta^{(h-1)}(x,x')_{ij,i'j'}]+K^{(h)}(x,x')_{ij,i'j'})\in\mathbb{R}
+   $$
+   here $$\odot$$ denotes element-wise multiplication since $$\Theta$$ is a scalar value;
+
+7. Update $$\Sigma^{(h)}(x,x')_{ij,i'j'}=\text{tr}(K^{(h)}(x,x')_{ij,i'j'})\in\mathbb{R}$$;
+
+8. Repeat steps 4-7 until $$h=L$$. At the last layer, we obtain $$\Theta^{(L)}(x,x')_{ij,i'j'}$$ using the same formula in step 6 for vanilla CNN's; for CNN's with global average pooling, the authors chose to drop the $$K^{(L)}(x,x')_{ij,i'j'}$$ term;
+
+9. Group the CNTK entries for all patches into a single tensor $$\Theta^{(L)}(x,x')\in\mathbb{R}^{P\times Q\times P\times Q}$$ and assume zero-padding;
+
+10. Compute the final CNTK value;
+
+    for vanilla CNN's we take the trace of the diagonal elements: (Q: how do we take trace over tensors?)
+    $$
+    H(x,x')=\text{tr}(\Theta^{(L)}(x,x'))
+    $$
+    for CNN's with global average pooling, the authors apply a similar "pooling" operation over the $$\Theta$$ matrix by taking the global average:
+    $$
+    H(x,x')=\frac{1}{P^2Q^2}\sum_{ij,i'j'}\Theta^{(L)}(x,x')_{ij,i'j'}
+    $$
+
+The computational challenge of the above procedure is at step 5, when the expectation needs to be approximated. Instead of traditional techniques like MC sampling, the authors came up with a pretty creative solution. They observed that the following closed-form _exact_ expectations are valid:
+$$
+\begin{split}
+\sum_{u,v\sim N(0,D\Lambda D)}[\sigma(u)\sigma(v)]&=\frac{\lambda(\pi-\arccos(\lambda))+\sqrt{1-\lambda^2}}{2\pi}\cdot c_1c_2\\
+\sum_{u,v\sim N(0,D\Lambda D)}[\dot{\sigma}(u)\dot{\sigma}(v)]&=\frac{\pi-\arccos(\lambda)}{2\pi}
+\end{split}
+$$
+if the covariance matrix $$A=D\Lambda D$$ such that $$\Lambda=\begin{pmatrix}
+1 & \lambda \\
+\lambda & 1
+\end{pmatrix}$$ and $$D=\begin{pmatrix}
+c_1 & 0 \\
+0 & c_2
+\end{pmatrix}$$. We know the entries in the covariance matrix $$A=\begin{pmatrix}
+\Sigma_{xx} & \Sigma_{xx'} \\
+\Sigma_{x'x} & \Sigma_{x'x'}
+\end{pmatrix}$$; then we can obtain the following calculations:
+$$
+\begin{split}
+c_1^2&=\Sigma_{xx}\\
+c_2^2&=\Sigma_{x'x'}\\
+\lambda&=\frac{\Sigma_{xx'}}{c_1c_2}
+\end{split}
+$$
+Note that we have assumed the covariance matrix is symmetrical, which generally should be true; also since we need to take square roots, this means the entries in the covariance matrix must be the result of a non-negative kernel function. With these relatively general assumptions, the authors have been able to reduce the expectation computation into a simple, closed-form evaluation.
+
+The following codes are snippets from the [source code](https://github.com/ruosongwang/CNTK) published along with the paper; I added some comments.
+
+```python
+# CUDA kernel for activation
+void trans(float s[32][32][32][32], float t[32][32][32][32], const float l[32][32], const float r[32][32], const float il[32][32], const float ir[32][32])
+{
+	int x1 = blockIdx.x;
+	int y1 = blockIdx.y;
+	int x2 = threadIdx.x + ((blockIdx.z >> 2) << 3);
+	int y2 = threadIdx.y + ((blockIdx.z & 3) << 3);
+
+    # S = K(h-1), T = \Theta(h-1);
+    # L = c1, R = c2, iL = 1/c1, iR = 1/c2 => the matrix D in section I in the paper;
+	float S = s[x1][y1][x2][y2], T = t[x1][y1][x2][y2], L = l[x1][y1], R = r[x2][y2], iL = il[x1][y1], iR = ir[x2][y2];
+    # S = \lambda;
+	S = S * iL * iR;
+
+	float BS = (S * (3.141592654f - acosf(max(min(S, 1.0f), -1.0f))) + sqrtf(1.0f - min(S * S, 1.0f)))*L*R/28.274333882308138f;
+	S = (3.141592654f - acosf(max(min(S, 1.0f), -1.0f))) / 28.274333882308138;
+	t[x1][y1][x2][y2] = T * S + BS;
+	s[x1][y1][x2][y2] = BS;
+}
+```
+
+In the CUDA kernel, `s` and `t` stores the current values for $$K^{(h)}(x,x')_{ij,i'j'}$$ and $$\Theta^{(h)}(x,x')_{ij,i'j'}$$; notice their tensor shapes are both `32x32x32x32`, because the experiments are conducted on CIFAR-10 dataset with image size = 32x32. The expectations are computed using the fast formula above. After this kernel, we also need to compute the trace on `s` to obtain the current values for $$\Sigma^{(h)}(x,x')$$; this is done by the following customized convolution kernel:
+
+```python
+# CUDA kernel for convolution operation -> trace operation
+void conv3(const float s[32][32][32][32], float t[32][32][32][32])
+{
+    # x1=batch; y1=channel; x2,y2 = H/W;
+    # each thread block has (32, 32) threads = 1 feature map;
+    # -31 b/c there are (63, 63) blocks in the grid, but only batch=32 and channels=32 are used;
+	int x1 = threadIdx.x + blockIdx.x - 31;
+	int y1 = threadIdx.y + blockIdx.y - 31;
+	int x2 = threadIdx.x;
+	int y2 = threadIdx.y;
+	__shared__ float d[32 + 2][32 + 2];
+
+    # padding;
+	if (x2 == 0){
+		d[0][y2 + 1] = d[33][y2 + 1] = 0;
+		if (x2 == 0 && y2 == 0)
+			d[0][0] = d[0][33] = d[33][0] = d[33][33] = 0; 
+	}
+	if (y2 == 0){
+		d[x2 + 1][0] = d[x2 + 1][33] = 0;
+	}
+	if (x1 < 0 || x1 > 31 || y1 < 0 || y1 > 31){
+		d[x2 + 1][y2 + 1] = 0;
+		return;
+	}
+	else
+		d[x2 + 1][y2 + 1] = s[x1][y1][x2][y2];
+	__syncthreads();
+    # take trace;
+	t[x1][y1][x2][y2] = d[x2][y2] + d[x2][y2 + 1] + d[x2][y2 + 2]
+					  + d[x2 + 1][y2] + d[x2 + 1][y2 + 1] + d[x2 + 1][y2 + 2]
+					  + d[x2 + 2][y2] + d[x2 + 2][y2 + 1] + d[x2 + 2][y2 + 2];
+}
+```
+
+However it is not very clear to me how this kernel, which looks just like a normal 3x3 conv filter, performs the trace operation over $$K^{(h)}(x,x')_{ij,i'j'}$$ and $$\Theta^{(h)}(x,x')_{ij,i'j'}$$. The authors call these two kernels in the iterative algorithm to compute the CNTK values $$H(x,x')$$
+
+```python
+# computes H(x,z)
+# here Lx=c1, lZ=c2, iLx=1/c1, iLz=1/c2; the variables are lists containing all such diagonal values for all input samples;
+def xz(x, z, Lx, Lz, iLx, iLz):
+    # initialize K = step 2;
+	S = cp.matmul(x.T, z).reshape(32, 32, 32, 32)
+    # initialize \Sigma by taking trace of K = step 3;
+	conv3(conv_blocks, conv_threads, (S, S))
+    # initialize \Theta = step 1;
+	T = cp.zeros((32, 32, 32, 32), dtype = cp.float32)
+    # if not fix means it's vanilla CNN, initialize \Theta same as K using dot products;
+	if not fix:
+		T += S
+
+	for i in range(1, d - 1):
+        # compute expectations and update K, K', \Theta (before trace) = step 5;
+		trans(trans_blocks, trans_threads, (S, T, Lx[i], Lz[i], iLx[i], iLz[i]))
+        # update \Sigma by taking trace of updated K = step 7;
+		conv3(conv_blocks, conv_threads, (S, S))
+        # update \Theta by taking trace of updated \Theta (before trace) = step 6;
+		conv3(conv_blocks, conv_threads, (T, T))
+
+    # final \Theta after trace;
+	trans(trans_blocks, trans_threads, (S, T, Lx[-1], Lz[-1], iLx[-1], iLz[-1]))	
+
+    # if fix means use global average pooling; the authors dropped the K term as in step 8;
+	if fix:
+		T -= S
+    # \Theta(h) = trace(~\Theta(h-1)); where ~\Theta(h-1) is computed in T;
+	return cp.mean(T) if gap else cp.trace(T.reshape(1024, 1024))
+```
+
+After constructing the CNTK matrix, the kernel regression problem is solved by:
+
+```python
+# H[N_train+N_test, N_train+N_test]; so H[N_train:, :N_train] = H(x_test, x_train);
+u = H[N_train:, :N_train].dot(scipy.linalg.solve(H[:N_train, :N_train], Y_train))
+```
+
+##### Summary
+
+In this post I discussed the details in NTKs for fully connected and convolutional neural networks. Hope this post would serve as a background point for possible future interests on the theoretical implications of this method. I'm very impressed with the trick that the authors employed to compute the expectation, as well as the connections drawn between NTK and Gaussian Process views of deep neural networks.
 
 
 
 
 #### References
 
-1. Arthur Jacot, Franck Gabriel, and Clément Hongler, "Neural tangent kernel: Convergence and generalization in neural networks", 2018
-2. 
+1. Arthur Jacot, Franck Gabriel, and Clément Hongler, ["Neural tangent kernel: Convergence and generalization in neural networks"](https://arxiv.org/abs/1806.07572), NeurIPS 2018;
+2. Atsushi Nitanda & Taiji Suzuki, ["Optimal Rates for Averaged Stochastic Gradient Descent under Neural Tangent Kernel Regime"](https://arxiv.org/abs/2006.12297), ICLR 2021;
+3. Keyulu Xu et al, ["How Neural Networks Extrapolate: From Feedforward to Graph Neural Networks"](https://openreview.net/forum?id=UH-cmocLJC), ICLR 2021;
+4. Jiri Hron et al, [Infinite attention: NNGP and NTK for deep attention networks](https://arxiv.org/abs/2006.10540), ICML 2020;
+5. Sanjeev Arora el al, ["On Exact Computation with an Infinitely Wide Neural Net"](https://arxiv.org/abs/1904.11955), NeurIPS 2019;
+6. Jaehoon Lee et al, ["Deep Neural Networks as Gaussian Processes"](https://arxiv.org/abs/1711.00165), ICLR 2018;
 

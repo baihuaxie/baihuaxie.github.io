@@ -13,6 +13,7 @@ Since proposed by Jacob el al<sup>1</sup> in 2018, _neural tangent kernels_ have
 First let's get a few preliminaries out of the way:
 
 **Kernel Regression.** Let $$f(\theta;x)\in\mathbb{R}$$ denote the output of a neural network given weights $$\theta$$ and an input sample $$x$$. Let $$X$$ and $$X^*$$ represent the set of training and testing dataset, respectively. A regression or classification problem would ask the network to predict $$f(\theta; x^*)$$ given the training samples $$\{X,y\}$$. Kernel regression solves this problem by giving a closed-form expression for the prediction as the following:
+
 $$
 f(\theta;x^*)=\sum_j^N\mathcal{k}(x^*,x_j)y_j
 $$
@@ -20,13 +21,14 @@ $$
 Here, $$\{x_j,y_j\}\in\{X,y\}$$ are the $$N$$ training samples; $$\mathcal{k}(\cdot,\cdot)$$ is a kernel function between two samples that produces a similarity score. In essence, kernel regression produces a prediction for an unseen sample in the test set as a weighted combination of the labels in the training set.
 
 **Neural Tangent Kernel (NTK).** Jacob et al<sup>1</sup> proposed specific forms of the kernel functions $$\mathcal{k}(\cdot,\cdot)$$ for different deep neural networks, such that the kernel regression solution with these kernels can be shown to be (approximately) equivalent to the results produced by these neural networks trained using gradient descent. Specifically, for weakly-trained networks, i.e., networks with fixed weights except for the top layer trained with $$\ell_2$$ loss, the following kernel function was derived:
+
 $$
 \mathcal{k}(x,x')=\mathbb{E}_{\theta\sim W}[f(\theta;x)f(\theta;x')]
 $$
 
 where the expectation is taken for the weights following its initialization distribution, $$W$$, which is usually Gaussian in practice.
 
-For fully trained networks using gradient descent with $\ell_2$ loss, the following kernel was proposed, referred to as the _neural tangent kernels_ or NTKs:
+For fully trained networks using gradient descent with $$\ell_2$$ loss, the following kernel was proposed, referred to as the _neural tangent kernels_ or NTKs:
 
 $$
 \text{NTK}(x,x')=\mathbb{E}_{\theta\sim W}[<\frac{\partial{f(\theta;x)}}{\partial{\theta}}, \frac{\partial{f(\theta;x')}}{\partial{\theta}}>]

@@ -127,7 +127,7 @@ W_{out} &= \frac{W_{in}+2*padding[1]-dilation[1]*(kernel\_size[1]-1)-1}{stride[1
 $$
 
 
-For instance, if the kernel size is 5, then setting the padding=dilation=2 would ensure the preservation of dimensions. Such a configuration would also exactly halve the feature maps if stride=2, another desirable property, as setting stride=2 is the most common downsampling technique employed in modern networks.
+For instance, if the kernel size is 5, then setting the padding=2 and dilation=1 would ensure the preservation of dimensions. Such a configuration would also exactly halve the feature maps if stride=2, another desirable property, as setting stride=2 is the most common downsampling technique employed in modern networks.
 
 Another interesting anecdote about convolutional filters is that they are actually not convolutional at all. The proper name for the actual operation that they do perform should in fact be [auto-correlation](https://en.wikipedia.org/wiki/Autocorrelation#:~:text=Autocorrelation%2C%20also%20known%20as%20serial,the%20time%20lag%20between%20them.), borrowed from the field of statistics. The difference is very subtle: auto-correlation became the true convolution if the input feature maps are transposed first, which of course is not necessary. Nonetheless, the name "convolution", just as its status as the corner-stone of modern computer vision networks, have stood the test of time.
 
